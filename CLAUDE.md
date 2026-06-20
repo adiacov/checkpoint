@@ -15,3 +15,8 @@ When work is completed:
 * summarize what changed, how it was verified, and any remaining risks.
 
 Project-specific Claude Code instructions may be added below.
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->
