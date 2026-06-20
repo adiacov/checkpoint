@@ -1,0 +1,16 @@
+.DS_Store
+.env
+.env.*
+*.log
+
+# Agent Workspace legacy local cache
+.agent/
+
+# Local/private identity, memory, or secrets
+MEMORY.md
+DECISIONS.local.md
+LOCAL.md
+PRIVATE.md
+secrets/
+*.pem
+*.key

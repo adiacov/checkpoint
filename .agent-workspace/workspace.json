@@ -1,0 +1,35 @@
+{
+  "agents": [
+    "claude"
+  ],
+  "createdAt": "2026-06-20T12:53:35Z",
+  "generatedFiles": {
+    ".gitignore": {
+      "kind": "default",
+      "template": "default/.gitignore"
+    },
+    "CLAUDE.md": {
+      "agent": "claude",
+      "kind": "adapter",
+      "template": "adapters/claude/CLAUDE.md"
+    },
+    "PROJECT.md": {
+      "kind": "context",
+      "template": "default/PROJECT.md"
+    },
+    "STATE.md": {
+      "kind": "context",
+      "template": "default/STATE.md"
+    },
+    "WORKFLOWS.md": {
+      "kind": "default",
+      "template": "default/WORKFLOWS.md"
+    }
+  },
+  "profile": "general",
+  "schemaVersion": 1,
+  "templateRevision": "unknown",
+  "toolName": "agent-ws",
+  "toolVersion": "unknown",
+  "updatedAt": "2026-06-20T12:53:50Z"
+}
