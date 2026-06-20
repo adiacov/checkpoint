@@ -8,6 +8,22 @@
 
 **Input**: User description: "Shared agent-neutral checkpoint core: git facts, markdown checkpoint format, opt-in config, archive prune, skip-empty/dedup, startup pending-count — extracted from the pi checkpoint.ts as the single source of truth that every agent extension calls."
 
+## Clarifications
+
+### Session 2026-06-20
+
+- Q: Who moves a checkpoint from `pending/` to `archive/` after review? → A: The recovery
+  workflow owns the move; the core only writes to `pending/` and prunes `archive/` — it never
+  moves files itself.
+- Q: What does `/checkpoint-disable` do to an opted-in project? → A: It sets `enabled=false`
+  in the config only; directories, ignore rules, and existing checkpoints are left intact
+  (reversible by re-enabling).
+- Q: What does the status capability report? → A: Enabled state, the resolved pending and
+  archive directories, the pending count, and the archived count.
+- Q: How is a "recent previous capture" detected for dedup across separate session-end events
+  (possibly different processes)? → A: Scan the newest checkpoint file's modification time in
+  `pending/` and suppress if it is within the dedup window — stateless and cross-process safe.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Capture a checkpoint at session end (Priority: P1)
@@ -138,7 +154,8 @@ first).
 - **FR-005**: The core MUST skip writing a checkpoint when skip-empty is enabled and the
   session contains no real user message.
 - **FR-006**: The core MUST suppress duplicate checkpoints captured within a short dedup
-  window of a previous capture.
+  window of a previous capture, detecting the previous capture by the newest checkpoint
+  file's modification time in the pending directory (stateless, cross-process).
 - **FR-007**: The core MUST not capture reload/restart session ends unless the caller has
   enabled including reloads.
 - **FR-008**: The core MUST read and write an agent-neutral project opt-in configuration
@@ -154,7 +171,9 @@ first).
 - **FR-012**: At session start the core MUST report the count of pending checkpoints
   awaiting review.
 - **FR-013**: At session start the core MUST prune the archive to a configured maximum,
-  removing the oldest archived checkpoints first.
+  removing the oldest archived checkpoints first. The core MUST NOT move checkpoints from
+  the pending directory to the archive directory; that move is owned by the recovery
+  workflow.
 - **FR-014**: The core MUST expose its capabilities — capture, opt-in/disable, status, and
   startup — through a stable interface that any agent adapter can call without duplicating
   logic.
@@ -163,6 +182,12 @@ first).
   intentional change is documented.
 - **FR-016**: The core MUST surface failures (e.g., unwritable directories) to the caller
   with enough context to diagnose, rather than silently discarding a checkpoint.
+- **FR-017**: The disable capability MUST set the enabled flag to false in the project
+  configuration only, leaving the pending/archive directories, ignore rules, and existing
+  checkpoints intact, so that re-enabling restores capture without further setup.
+- **FR-018**: The status capability MUST report the enabled state, the resolved pending and
+  archive directories, the count of pending checkpoints, and the count of archived
+  checkpoints.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -178,7 +203,8 @@ first).
 - **Conversation entry**: A single recent message included in a checkpoint, after truncation
   and with thinking omitted and tool calls summarized.
 - **Pending/archive stores**: Filesystem locations holding un-reviewed and reviewed
-  checkpoints respectively; the archive is size-bounded.
+  checkpoints respectively. The core writes to pending and bounds the archive size; the
+  recovery workflow is what moves a reviewed checkpoint from pending into archive.
 
 ## Success Criteria *(mandatory)*
 
