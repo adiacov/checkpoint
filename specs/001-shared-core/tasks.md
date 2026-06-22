@@ -139,10 +139,10 @@ flips only `enabled` (quickstart Scenarios 1 & 7).
 
 **Purpose**: Verify the cross-cutting guarantees and parity, then validate end-to-end.
 
-- [ ] T028 [P] Agent-neutrality test in `core/tests/api.test.ts`: assert the built module imports no agent SDK (no `pi`/`@anthropic`/codex), satisfying Constitution Principle I (FR-001, contract guarantee 1)
-- [ ] T029 [P] Document the one intentional parity deviation (stateless mtime dedup vs. in-memory global) in `core/README.md`, cross-referencing research §D2 (FR-015, SC-006)
-- [ ] T030 [P] Write `core/README.md` usage section covering the five capabilities + injected deps per contracts/core-interface.md (SC-007)
-- [ ] T031 Run quickstart.md Scenarios 1–8 manually and `cd core && npm test` until green; record parity results (quickstart "Definition of done")
+- [X] T028 [P] Agent-neutrality test in `core/tests/api.test.ts`: assert the built module imports no agent SDK (no `pi`/`@anthropic`/codex), satisfying Constitution Principle I (FR-001, contract guarantee 1)
+- [X] T029 [P] Document the one intentional parity deviation (stateless mtime dedup vs. in-memory global) in `core/README.md`, cross-referencing research §D2 (FR-015, SC-006)
+- [X] T030 [P] Write `core/README.md` usage section covering the five capabilities + injected deps per contracts/core-interface.md (SC-007)
+- [X] T031 Run quickstart.md Scenarios 1–8 manually and `cd core && npm test` until green; record parity results (quickstart "Definition of done")
 
 ---
 

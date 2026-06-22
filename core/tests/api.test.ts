@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { capture, disable, optIn, sessionStart, status } from "../src/api.ts";
 import { loadConfig } from "../src/config.ts";
@@ -256,4 +257,22 @@ test("status on an unconfigured project reports configured:false with zero count
 	assert.equal(result.enabled, false);
 	assert.equal(result.pendingCount, 0);
 	assert.equal(result.archivedCount, 0);
+});
+
+// --- Cross-cutting: agent-neutrality (Constitution Principle I / FR-001) ---
+
+test("core source imports no agent SDK (agent-neutral)", () => {
+	const srcDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "src");
+	const forbidden = [/@earendil/i, /\bpi-coding-agent\b/i, /@anthropic/i, /\bcodex\b/i];
+	for (const name of readdirSync(srcDir).filter((f) => f.endsWith(".ts"))) {
+		const text = readFileSync(path.join(srcDir, name), "utf8");
+		for (const importLine of text.split(/\r?\n/).filter((l) => /^\s*import\b/.test(l))) {
+			for (const pattern of forbidden) {
+				assert.ok(
+					!pattern.test(importLine),
+					`${name} must not import an agent SDK: ${importLine.trim()}`,
+				);
+			}
+		}
+	}
 });
