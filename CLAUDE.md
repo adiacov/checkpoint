@@ -18,5 +18,6 @@ Project-specific Claude Code instructions may be added below.
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
+shell commands, and other important information, read the current plan:
+`specs/001-shared-core/plan.md`
 <!-- SPECKIT END -->
