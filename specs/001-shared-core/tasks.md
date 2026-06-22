@@ -34,10 +34,10 @@ P1 and together form the MVP; US3 (session-start/status) is P2.
 
 **Purpose**: Create the `core/` library scaffold so all later work compiles and tests run.
 
-- [ ] T001 Create the `core/` library structure (`core/src/` and `core/tests/` directories) per plan.md §Project Structure
-- [ ] T002 Create `core/package.json` with `name`, `"type": "module"`, and `build` / `test` / `lint` scripts; devDeps only (`typescript`, `tsx`) per plan.md Technical Context (zero runtime deps)
-- [ ] T003 [P] Create `core/tsconfig.json` targeting NodeNext / ES2022 with `declaration: true` (emit `.d.ts` for adapters) per plan.md + research §"Open items"
-- [ ] T004 [P] Add linter/formatter configuration under `core/` consistent with ENGINEERING.md defaults
+- [X] T001 Create the `core/` library structure (`core/src/` and `core/tests/` directories) per plan.md §Project Structure
+- [X] T002 Create `core/package.json` with `name`, `"type": "module"`, and `build` / `test` / `lint` scripts; devDeps only (`typescript`, `tsx`) per plan.md Technical Context (zero runtime deps)
+- [X] T003 [P] Create `core/tsconfig.json` targeting NodeNext / ES2022 with `declaration: true` (emit `.d.ts` for adapters) per plan.md + research §"Open items"
+- [X] T004 [P] Add linter/formatter configuration under `core/` consistent with ENGINEERING.md defaults
 
 ---
 

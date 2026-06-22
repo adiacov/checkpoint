@@ -3,6 +3,10 @@
 .env.*
 *.log
 
+# Node build artifacts
+node_modules/
+dist/
+
 # Agent Workspace legacy local cache
 .agent/
 
