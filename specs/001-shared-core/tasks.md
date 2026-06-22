@@ -70,17 +70,17 @@ assert a `pending/*.md` file with the expected header, git facts, and recent mes
 
 ### Tests for User Story 1 ⚠️ (write first, ensure they fail)
 
-- [ ] T010 [P] [US1] Entry-normalization tests in `core/tests/entries.test.ts`: `messageToText`, thinking→`[thinking omitted]`, toolCall→`[tool call: name] {…}`, image→`[image omitted]`, truncation marker, real-user-message detection (FR-004, FR-005)
-- [ ] T011 [P] [US1] Markdown-format tests in `core/tests/checkpoint.test.ts`: title, Time/Reason/Project root/CWD/Session-file header, Integration note, Git facts block, Recent conversation sections (FR-003)
-- [ ] T012 [P] [US1] Git-facts tests in `core/tests/git.test.ts`: injected fake runner for deterministic facts + non-repo degradation to fallbacks (FR-002)
-- [ ] T013 [US1] Capture integration + store-write tests in `core/tests/api.test.ts` and `core/tests/store.test.ts`: written-path, skip-empty, reload skip, stateless dedup within window, bounded output, unwritable-dir error surfacing (FR-001, FR-005, FR-006, FR-007, FR-011, FR-016; quickstart Scenarios 2–5, 8)
+- [X] T010 [P] [US1] Entry-normalization tests in `core/tests/entries.test.ts`: `messageToText`, thinking→`[thinking omitted]`, toolCall→`[tool call: name] {…}`, image→`[image omitted]`, truncation marker, real-user-message detection (FR-004, FR-005)
+- [X] T011 [P] [US1] Markdown-format tests in `core/tests/checkpoint.test.ts`: title, Time/Reason/Project root/CWD/Session-file header, Integration note, Git facts block, Recent conversation sections (FR-003)
+- [X] T012 [P] [US1] Git-facts tests in `core/tests/git.test.ts`: injected fake runner for deterministic facts + non-repo degradation to fallbacks (FR-002)
+- [X] T013 [US1] Capture integration + store-write tests in `core/tests/api.test.ts` and `core/tests/store.test.ts`: written-path, skip-empty, reload skip, stateless dedup within window, bounded output, unwritable-dir error surfacing (FR-001, FR-005, FR-006, FR-007, FR-011, FR-016; quickstart Scenarios 2–5, 8)
 
 ### Implementation for User Story 1
 
-- [ ] T014 [P] [US1] Implement `core/src/entries.ts`: content-block rendering (text/thinking/toolCall/image/other), `truncate(text, maxTextPerEntry)` with `[truncated N chars]`, last-`recentEntries` selection, and real-user-message detection per data-model.md ConversationEntry (FR-004, FR-005)
-- [ ] T015 [P] [US1] Implement `core/src/checkpoint.ts`: assemble the markdown body (title, header lines, `## Integration note`, `## Git facts`, `## Recent conversation` with `### role — timestamp`) per research §D6 (FR-003)
-- [ ] T016 [US1] Extend `core/src/store.ts` with `writeCheckpoint` (unique filename `${ISO…}-${safeReason}.md`, numeric suffix on collision per research §D5) and `newestPendingMtime` for dedup (FR-006, edge case clock-skew) — depends on T008
-- [ ] T017 [US1] Implement `capture(cwd, reason, deps)` in `core/src/api.ts`: guards in order (not-configured/disabled → skip; reload && !includeReload → skip; skip-empty → skip; dedup within `dedupWindowSeconds` → skip), then write via T016 and return `CaptureResult`; wrap IO failures into `error` (FR-001–FR-007, FR-011, FR-016) — depends on T014, T015, T016, T006, T007
+- [X] T014 [P] [US1] Implement `core/src/entries.ts`: content-block rendering (text/thinking/toolCall/image/other), `truncate(text, maxTextPerEntry)` with `[truncated N chars]`, last-`recentEntries` selection, and real-user-message detection per data-model.md ConversationEntry (FR-004, FR-005)
+- [X] T015 [P] [US1] Implement `core/src/checkpoint.ts`: assemble the markdown body (title, header lines, `## Integration note`, `## Git facts`, `## Recent conversation` with `### role — timestamp`) per research §D6 (FR-003)
+- [X] T016 [US1] Extend `core/src/store.ts` with `writeCheckpoint` (unique filename `${ISO…}-${safeReason}.md`, numeric suffix on collision per research §D5) and `newestPendingMtime` for dedup (FR-006, edge case clock-skew) — depends on T008
+- [X] T017 [US1] Implement `capture(cwd, reason, deps)` in `core/src/api.ts`: guards in order (not-configured/disabled → skip; reload && !includeReload → skip; skip-empty → skip; dedup within `dedupWindowSeconds` → skip), then write via T016 and return `CaptureResult`; wrap IO failures into `error` (FR-001–FR-007, FR-011, FR-016) — depends on T014, T015, T016, T006, T007
 
 **Checkpoint**: US1 fully functional — checkpoints capture independently and pass quickstart Scenarios 2–5 & 8.
 

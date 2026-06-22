@@ -6,4 +6,4 @@
  */
 
 export * from "./types.js";
-export { detectProject } from "./api.js";
+export { capture, detectProject } from "./api.js";

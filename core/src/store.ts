@@ -4,7 +4,7 @@
  * prune are added by their respective capabilities in later modules/phases.
  */
 
-import { existsSync, mkdirSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { CheckpointConfig } from "./types.js";
 
@@ -34,4 +34,37 @@ export function listCheckpointFiles(dir: string): string[] {
 /** Count of `*.md` checkpoint files in a directory (0 if absent). */
 export function countCheckpointFiles(dir: string): number {
 	return listCheckpointFiles(dir).length;
+}
+
+/**
+ * Write a checkpoint body to `pendingDir/${baseName}.md`, appending a numeric suffix on
+ * collision so near-simultaneous captures never overwrite a prior checkpoint (research §D5,
+ * clock-skew edge case). Creates the directory if needed. Returns the path written.
+ */
+export function writeCheckpointFile(pendingDir: string, baseName: string, body: string): string {
+	ensureDir(pendingDir);
+	let candidate = path.join(pendingDir, `${baseName}.md`);
+	let suffix = 2;
+	while (existsSync(candidate)) {
+		candidate = path.join(pendingDir, `${baseName}-${suffix}.md`);
+		suffix += 1;
+	}
+	writeFileSync(candidate, body, "utf8");
+	return candidate;
+}
+
+/**
+ * Modification time (ms) of the newest pending checkpoint, or `undefined` if none. Used for
+ * stateless, cross-process dedup (FR-006): the newest file's mtime stands in for "the last
+ * capture", independent of any in-memory process state.
+ */
+export function newestPendingMtimeMs(pendingDir: string): number | undefined {
+	const files = listCheckpointFiles(pendingDir);
+	if (files.length === 0) return undefined;
+	let newest = 0;
+	for (const name of files) {
+		const mtime = statSync(path.join(pendingDir, name)).mtimeMs;
+		if (mtime > newest) newest = mtime;
+	}
+	return newest;
 }
