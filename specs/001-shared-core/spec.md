@@ -185,9 +185,9 @@ first).
 - **FR-017**: The disable capability MUST set the enabled flag to false in the project
   configuration only, leaving the pending/archive directories, ignore rules, and existing
   checkpoints intact, so that re-enabling restores capture without further setup.
-- **FR-018**: The status capability MUST report the enabled state, the resolved pending and
-  archive directories, the count of pending checkpoints, and the count of archived
-  checkpoints.
+- **FR-018**: The status capability MUST report whether the project is configured at all, the
+  enabled state, the resolved pending and archive directories, the count of pending
+  checkpoints, and the count of archived checkpoints.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -238,7 +238,10 @@ first).
   limit default 4000 characters, maximum archived checkpoints default 50, with a dedup
   window of 20 seconds.
 - The agent-neutral config file is `.checkpoint.json` at the project root and is tracked in
-  git; the legacy `.pi/checkpoint.json` is read during the transition.
+  git; the legacy `.pi/checkpoint.json` is read during the transition. Removing the legacy
+  read path is a future cleanup, intentionally out of scope for this feature (no fixed date).
+- Target platform is Linux (developer machine and intended use). Windows path handling is out
+  of scope; `node:path` is used for filesystem paths but Windows is not validated.
 - Raw checkpoints live under `sessions/pending/` and `sessions/archive/` as markdown and are
   git-ignored, with `.gitkeep` files tracked.
 - Reading the conversation transcript and registering commands/lifecycle triggers belong to

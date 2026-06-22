@@ -71,13 +71,23 @@ Point-in-time repository snapshot embedded in a checkpoint; not persisted separa
 | `recentCommits` | `git log --oneline -5` | `none` |
 
 Non-repo or non-zero exit degrades each field to its fallback rather than failing capture.
+Rendered into the `## Git facts` block as one `Label: value` line per field
+(`Branch:`, `Status:`, `Diff:`, `Commits:`), ported verbatim from `gitFactsMarkdown`.
 
 ## Checkpoint (output artifact)
 
 One markdown file written to `pending/`. Filename:
 `${ISO.replace(/[:.]/g,'-')}-${safeReason}.md`, de-duplicated with a numeric suffix on
-collision. Body sections (in order): title, header lines (Time, Reason, Project root, CWD,
-Session file), `## Integration note`, `## Git facts`, `## Recent conversation`.
+collision. Body sections (in order): title `# Pending Session Checkpoint`, header lines (Time,
+Reason, Project root, CWD, Session file), `## Integration note`, `## Git facts`,
+`## Recent conversation`.
+
+**Integration note** (constant text, ported verbatim — the only "curation" guidance the core
+emits, per Constitution Principle III): states that the file is raw session evidence (not
+durable memory), that the next session should review it and persist only durable items
+(goals, decisions, current state, next actions, blockers, realizations) into the project's
+memory files, and that after integration the file should be moved to `${archiveDir}/` or
+marked processed. The core never performs this move itself (FR-013).
 
 ## Stores (filesystem)
 
@@ -88,9 +98,13 @@ Session file), `## Integration note`, `## Git facts`, `## Recent conversation`.
 | Config | `${root}/.checkpoint.json` | Core (opt-in/disable) |
 | Ignore | `${root}/.gitignore` | Core appends `pendingDir/*.md`, `archiveDir/*.md` rules idempotently |
 
-**Prune rule**: list `archiveDir/*.md` sorted lexicographically; if count >
-`maxArchivedCheckpoints`, unlink the oldest excess (best-effort; prune failure never fails
-capture).
+**Prune rule**: list `archiveDir/*.md` sorted lexicographically (filenames are ISO-timestamp
+prefixed, so lexicographic order == chronological); if count > `maxArchivedCheckpoints`,
+unlink the oldest excess (best-effort; prune failure never fails capture).
+
+**Concurrency**: prune (session-start) touches only `archiveDir`; capture writes only to
+`pendingDir`. The two never write the same files, so a concurrent capture and a session-start
+prune do not conflict and need no locking — sufficient for the single-user scope.
 
 ## Result types (returned to callers)
 

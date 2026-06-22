@@ -33,7 +33,8 @@ and `sessions/archive/*.md` (checkpoints), `.gitkeep` placeholders, `.gitignore`
 git-facts and non-repo paths). Deterministic, no network, no agent runtime.
 
 **Target Platform**: Node.js library consumed in-process by each agent adapter (pi extension,
-Claude plugin, Codex). Cross-platform path handling (POSIX + Windows separators normalized).
+Claude plugin, Codex). Linux is the supported/validated platform; paths go through `node:path`,
+but Windows is explicitly out of scope (see spec Assumptions).
 
 **Project Type**: Single library (the shared core). Adapters are separate, later features.
 
