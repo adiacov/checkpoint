@@ -56,16 +56,16 @@ on an IO failure (a checkpoint is never silently dropped — FR-016).
 
 Tracked in git so opt-in and tuning travel with the repo. Defaults (match the reference):
 
-| Field | Default |
-|---|---|
-| `recentEntries` | 24 |
-| `maxTextPerEntry` | 4000 |
-| `maxArchivedCheckpoints` | 50 |
-| `dedupWindowSeconds` | 20 |
-| `includeReload` | false |
-| `skipEmptySessions` | true |
-| `pendingDir` | `sessions/pending` |
-| `archiveDir` | `sessions/archive` |
+| Field                    | Default            |
+| ------------------------ | ------------------ |
+| `recentEntries`          | 24                 |
+| `maxTextPerEntry`        | 4000               |
+| `maxArchivedCheckpoints` | 50                 |
+| `dedupWindowSeconds`     | 20                 |
+| `includeReload`          | false              |
+| `skipEmptySessions`      | true               |
+| `pendingDir`             | `sessions/pending` |
+| `archiveDir`             | `sessions/archive` |
 
 The legacy `.pi/checkpoint.json` is read as a fallback during the transition.
 
