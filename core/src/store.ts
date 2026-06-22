@@ -4,7 +4,7 @@
  * prune are added by their respective capabilities in later modules/phases.
  */
 
-import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { CheckpointConfig } from "./types.js";
 
@@ -67,4 +67,45 @@ export function newestPendingMtimeMs(pendingDir: string): number | undefined {
 		if (mtime > newest) newest = mtime;
 	}
 	return newest;
+}
+
+/** Create the pending and archive directories with tracked `.gitkeep` placeholders (FR-010). */
+export function ensureCheckpointDirs(root: string, config: CheckpointConfig): void {
+	for (const dir of [pendingDirPath(root, config), archiveDirPath(root, config)]) {
+		ensureDir(dir);
+		ensureGitKeep(dir);
+	}
+}
+
+function ensureGitKeep(dir: string): void {
+	const file = path.join(dir, ".gitkeep");
+	if (!existsSync(file)) writeFileSync(file, "", "utf8");
+}
+
+/**
+ * Idempotently append ignore rules that keep raw checkpoint markdown out of git while leaving
+ * the `.gitkeep` placeholders and the config file tracked (FR-010, SC-004). Returns the rules
+ * that were newly added (empty if all were already present). Ported from the reference
+ * `ensureGitIgnoreRules`.
+ */
+export function ensureGitIgnoreRules(root: string, config: CheckpointConfig): string[] {
+	const gitignorePath = path.join(root, ".gitignore");
+	const current = existsSync(gitignorePath) ? readFileSync(gitignorePath, "utf8") : "";
+	const existingRules = new Set(
+		current
+			.split(/\r?\n/)
+			.map((line) => line.trim())
+			.filter(Boolean),
+	);
+	const requiredRules = [
+		`${config.pendingDir.replace(/\\/g, "/")}/*.md`,
+		`${config.archiveDir.replace(/\\/g, "/")}/*.md`,
+	];
+	const missingRules = requiredRules.filter((rule) => !existingRules.has(rule));
+	if (missingRules.length === 0) return [];
+
+	const prefix = current.length === 0 || current.endsWith("\n") ? "" : "\n";
+	const section = ["# Raw checkpoint files", ...missingRules].join("\n");
+	writeFileSync(gitignorePath, `${current}${prefix}${section}\n`, "utf8");
+	return missingRules;
 }

@@ -98,15 +98,15 @@ flips only `enabled` (quickstart Scenarios 1 & 7).
 
 ### Tests for User Story 2 ⚠️ (write first, ensure they fail)
 
-- [ ] T018 [P] [US2] Config tests in `core/tests/config.test.ts`: every default applied, legacy `.pi/checkpoint.json` read, clamps/rejections, write round-trip (tab-indented, `createdAt` preserved, `updatedAt` set) (FR-008, FR-009)
-- [ ] T019 [US2] Opt-in/disable tests in `core/tests/store.test.ts` and `core/tests/api.test.ts`: dirs + `.gitkeep` created, `.gitignore` rules added once (idempotent), disable leaves dirs/ignore/checkpoints intact (FR-010, FR-017; quickstart Scenarios 1 & 7)
+- [X] T018 [P] [US2] Config tests in `core/tests/config.test.ts`: every default applied, legacy `.pi/checkpoint.json` read, clamps/rejections, write round-trip (tab-indented, `createdAt` preserved, `updatedAt` set) (FR-008, FR-009)
+- [X] T019 [US2] Opt-in/disable tests in `core/tests/store.test.ts` and `core/tests/api.test.ts`: dirs + `.gitkeep` created, `.gitignore` rules added once (idempotent), disable leaves dirs/ignore/checkpoints intact (FR-010, FR-017; quickstart Scenarios 1 & 7)
 
 ### Implementation for User Story 2
 
-- [ ] T020 [US2] Add `writeConfig` to `core/src/config.ts`: write canonical `.checkpoint.json` tab-indented, preserve `createdAt`, set `updatedAt` per data-model.md state transitions (FR-008) — depends on T006
-- [ ] T021 [US2] Add opt-in setup to `core/src/store.ts`: create pending/archive dirs with tracked `.gitkeep`, append `pendingDir/*.md` and `archiveDir/*.md` to `.gitignore` idempotently, reporting newly added rules (FR-010, SC-004) — depends on T008
-- [ ] T022 [US2] Implement `optIn(cwd, deps)` in `core/src/api.ts`: write enabled config with defaults (T020), run dir/ignore setup (T021), return `OptInResult` (FR-008, FR-009, FR-010) — depends on T020, T021
-- [ ] T023 [US2] Implement `disable(cwd, deps)` in `core/src/api.ts`: set `enabled=false` + `updatedAt` only, leaving dirs/ignore/checkpoints intact (FR-017) — depends on T020
+- [X] T020 [US2] Add `writeConfig` to `core/src/config.ts`: write canonical `.checkpoint.json` tab-indented, preserve `createdAt`, set `updatedAt` per data-model.md state transitions (FR-008) — depends on T006
+- [X] T021 [US2] Add opt-in setup to `core/src/store.ts`: create pending/archive dirs with tracked `.gitkeep`, append `pendingDir/*.md` and `archiveDir/*.md` to `.gitignore` idempotently, reporting newly added rules (FR-010, SC-004) — depends on T008
+- [X] T022 [US2] Implement `optIn(cwd, deps)` in `core/src/api.ts`: write enabled config with defaults (T020), run dir/ignore setup (T021), return `OptInResult` (FR-008, FR-009, FR-010) — depends on T020, T021
+- [X] T023 [US2] Implement `disable(cwd, deps)` in `core/src/api.ts`: set `enabled=false` + `updatedAt` only, leaving dirs/ignore/checkpoints intact (FR-017) — depends on T020
 
 **Checkpoint**: US1 + US2 form the MVP — a fresh project opts in and captures its first checkpoint (SC-002).
 

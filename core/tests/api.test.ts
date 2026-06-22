@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { capture } from "../src/api.ts";
+import { capture, disable, optIn } from "../src/api.ts";
+import { loadConfig } from "../src/config.ts";
 import { countCheckpointFiles } from "../src/store.ts";
 import type { CommandRunner, ConversationEntry, CoreDeps } from "../src/types.ts";
 
@@ -128,4 +129,64 @@ test("capture surfaces an IO failure via error instead of dropping silently", as
 	const result = await capture(root, "manual", depsFor(root));
 	assert.equal(result.written, false);
 	assert.ok(result.error, "expected an error message");
+});
+
+// --- US2: opt-in / disable ---
+
+test("optIn creates config, dirs, .gitkeep, and ignore rules with defaults", async () => {
+	const root = tmp();
+	const result = await optIn(root, { runGit: repoRunner(root) });
+
+	const config = loadConfig(root);
+	assert.equal(config?.enabled, true);
+	assert.equal(config?.recentEntries, 24);
+	assert.equal(config?.maxArchivedCheckpoints, 50);
+
+	assert.ok(existsSync(path.join(root, "sessions", "pending", ".gitkeep")));
+	assert.ok(existsSync(path.join(root, "sessions", "archive", ".gitkeep")));
+
+	const gitignore = readFileSync(path.join(root, ".gitignore"), "utf8");
+	assert.match(gitignore, /sessions\/pending\/\*\.md/);
+	assert.match(gitignore, /sessions\/archive\/\*\.md/);
+	assert.deepEqual(result.addedIgnoreRules, ["sessions/pending/*.md", "sessions/archive/*.md"]);
+});
+
+test("optIn is idempotent: no duplicate ignore rules, createdAt preserved", async () => {
+	const root = tmp();
+	const first = await optIn(root, { runGit: repoRunner(root) });
+	const createdAt = loadConfig(root)?.createdAt;
+
+	const second = await optIn(root, { runGit: repoRunner(root) });
+	assert.deepEqual(second.addedIgnoreRules, []);
+	assert.equal(loadConfig(root)?.createdAt, createdAt);
+
+	const gitignore = readFileSync(path.join(root, ".gitignore"), "utf8");
+	const occurrences = gitignore.match(/sessions\/pending\/\*\.md/g) ?? [];
+	assert.equal(occurrences.length, 1);
+	assert.ok(first.configPath.endsWith(".checkpoint.json"));
+});
+
+test("disable flips enabled only, leaving dirs and checkpoints intact", async () => {
+	const root = tmp();
+	await optIn(root, { runGit: repoRunner(root) });
+	const written = await capture(root, "manual", depsFor(root));
+	assert.equal(written.written, true);
+
+	const result = await disable(root, { runGit: repoRunner(root) });
+	assert.equal(result.disabled, true);
+	assert.equal(loadConfig(root)?.enabled, false);
+
+	// Dirs, gitkeep, and the existing checkpoint are intact.
+	assert.ok(existsSync(path.join(root, "sessions", "pending", ".gitkeep")));
+	assert.equal(countCheckpointFiles(pendingDir(root)), 1);
+
+	// Capture now skips because disabled.
+	const after = await capture(root, "manual", depsFor(root));
+	assert.equal(after.skippedReason, "disabled");
+});
+
+test("disable is a no-op when the project is not configured", async () => {
+	const root = tmp();
+	const result = await disable(root, { runGit: repoRunner(root) });
+	assert.equal(result.disabled, false);
 });

@@ -6,7 +6,7 @@
  *  - `dedupWindowSeconds` is surfaced as a config field (was a module constant, §D2).
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { CheckpointConfig } from "./types.js";
 
@@ -73,6 +73,12 @@ export function loadConfig(root: string): CheckpointConfig | undefined {
 function parseConfig(configPath: string): CheckpointConfig {
 	const parsed = JSON.parse(readFileSync(configPath, "utf8")) as Partial<CheckpointConfig>;
 	return normalizeConfig(parsed);
+}
+
+/** Write the config as tab-indented JSON (with trailing newline), creating parent dirs. */
+export function writeConfig(configPath: string, config: CheckpointConfig): void {
+	mkdirSync(path.dirname(configPath), { recursive: true });
+	writeFileSync(configPath, `${JSON.stringify(config, null, "\t")}\n`, "utf8");
 }
 
 /** Reject absolute paths and parent-directory escapes; fall back to the default. */
