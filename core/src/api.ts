@@ -18,10 +18,12 @@ import { hasUserMessage } from "./entries.js";
 import { defaultRunner, gitFacts, resolveRoot } from "./git.js";
 import {
 	archiveDirPath,
+	countCheckpointFiles,
 	ensureCheckpointDirs,
 	ensureGitIgnoreRules,
 	newestPendingMtimeMs,
 	pendingDirPath,
+	pruneArchive,
 	writeCheckpointFile,
 } from "./store.js";
 import type {
@@ -30,6 +32,8 @@ import type {
 	DisableResult,
 	OptInResult,
 	ProjectContext,
+	SessionStartResult,
+	StatusResult,
 } from "./types.js";
 
 function nowIso(deps: CoreDeps): string {
@@ -99,6 +103,42 @@ export async function disable(cwd: string, deps: CoreDeps = {}): Promise<Disable
 	});
 	writeConfig(project.configPath, config);
 	return { disabled: true, configPath: project.configPath };
+}
+
+/**
+ * Session-start routine: prune the archive to its configured maximum (oldest first) and report
+ * the pending checkpoint count. Never moves files pending→archive — that is owned by the
+ * recovery workflow (FR-012, FR-013). Returns zeros when the project is not configured.
+ */
+export async function sessionStart(cwd: string, deps: CoreDeps = {}): Promise<SessionStartResult> {
+	const project = await detectProject(cwd, deps);
+	const config = project.config;
+	if (!config) return { pendingCount: 0, prunedCount: 0 };
+
+	const prunedCount = pruneArchive(project.root, config);
+	const pendingCount = countCheckpointFiles(pendingDirPath(project.root, config));
+	return { pendingCount, prunedCount };
+}
+
+/**
+ * Report whether the project is configured, its enabled state, the resolved pending/archive
+ * directories, and the pending/archived checkpoint counts (FR-018). Uses default directories
+ * when the project is not configured.
+ */
+export async function status(cwd: string, deps: CoreDeps = {}): Promise<StatusResult> {
+	const project = await detectProject(cwd, deps);
+	const config = project.config;
+	const effective = config ?? normalizeConfig({});
+	const pendingDir = pendingDirPath(project.root, effective);
+	const archiveDir = archiveDirPath(project.root, effective);
+	return {
+		configured: config !== undefined,
+		enabled: config?.enabled ?? false,
+		pendingDir,
+		archiveDir,
+		pendingCount: countCheckpointFiles(pendingDir),
+		archivedCount: countCheckpointFiles(archiveDir),
+	};
 }
 
 /**

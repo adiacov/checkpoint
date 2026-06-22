@@ -6,4 +6,4 @@
  */
 
 export * from "./types.js";
-export { capture, detectProject, disable, optIn } from "./api.js";
+export { capture, detectProject, disable, optIn, sessionStart, status } from "./api.js";

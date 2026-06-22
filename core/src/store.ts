@@ -4,7 +4,15 @@
  * prune are added by their respective capabilities in later modules/phases.
  */
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	readdirSync,
+	readFileSync,
+	statSync,
+	unlinkSync,
+	writeFileSync,
+} from "node:fs";
 import path from "node:path";
 import type { CheckpointConfig } from "./types.js";
 
@@ -108,4 +116,28 @@ export function ensureGitIgnoreRules(root: string, config: CheckpointConfig): st
 	const section = ["# Raw checkpoint files", ...missingRules].join("\n");
 	writeFileSync(gitignorePath, `${current}${prefix}${section}\n`, "utf8");
 	return missingRules;
+}
+
+/**
+ * Prune the archive to `maxArchivedCheckpoints`, removing the oldest files first
+ * (lexicographic == chronological on the ISO-timestamp filenames). Best-effort: a failed
+ * unlink is ignored so pruning never fails a capture/session-start (FR-013, SC-005). Returns
+ * the number of files removed. Never touches the pending directory.
+ */
+export function pruneArchive(root: string, config: CheckpointConfig): number {
+	const archiveDir = archiveDirPath(root, config);
+	const files = listCheckpointFiles(archiveDir);
+	const excess = files.length - config.maxArchivedCheckpoints;
+	if (excess <= 0) return 0;
+
+	let pruned = 0;
+	for (const name of files.slice(0, excess)) {
+		try {
+			unlinkSync(path.join(archiveDir, name));
+			pruned += 1;
+		} catch {
+			// Best-effort cleanup only; pruning must not fail the caller.
+		}
+	}
+	return pruned;
 }

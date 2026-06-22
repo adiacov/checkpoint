@@ -123,13 +123,13 @@ flips only `enabled` (quickstart Scenarios 1 & 7).
 
 ### Tests for User Story 3 ⚠️ (write first, ensure they fail)
 
-- [ ] T024 [US3] Prune + session-start + status tests in `core/tests/store.test.ts` and `core/tests/api.test.ts`: oldest-first prune to max, no prune at/below max, pending count correct, status fields per contract (FR-012, FR-013, FR-018; quickstart Scenario 6)
+- [X] T024 [US3] Prune + session-start + status tests in `core/tests/store.test.ts` and `core/tests/api.test.ts`: oldest-first prune to max, no prune at/below max, pending count correct, status fields per contract (FR-012, FR-013, FR-018; quickstart Scenario 6)
 
 ### Implementation for User Story 3
 
-- [ ] T025 [US3] Add `pruneArchive` to `core/src/store.ts`: list `archiveDir/*.md` lexicographically, unlink oldest excess best-effort (prune failure never fails capture), return pruned count per data-model.md Prune rule (FR-013, SC-005) — depends on T008
-- [ ] T026 [US3] Implement `sessionStart(cwd, deps)` in `core/src/api.ts`: prune via T025 and return `{ pendingCount, prunedCount }`; never move pending→archive (FR-012, FR-013) — depends on T025
-- [ ] T027 [US3] Implement `status(cwd, deps)` in `core/src/api.ts`: return `{ configured, enabled, pendingDir, archiveDir, pendingCount, archivedCount }` (FR-018) — depends on T008, T006
+- [X] T025 [US3] Add `pruneArchive` to `core/src/store.ts`: list `archiveDir/*.md` lexicographically, unlink oldest excess best-effort (prune failure never fails capture), return pruned count per data-model.md Prune rule (FR-013, SC-005) — depends on T008
+- [X] T026 [US3] Implement `sessionStart(cwd, deps)` in `core/src/api.ts`: prune via T025 and return `{ pendingCount, prunedCount }`; never move pending→archive (FR-012, FR-013) — depends on T025
+- [X] T027 [US3] Implement `status(cwd, deps)` in `core/src/api.ts`: return `{ configured, enabled, pendingDir, archiveDir, pendingCount, archivedCount }` (FR-018) — depends on T008, T006
 
 **Checkpoint**: All three stories independently functional.
 

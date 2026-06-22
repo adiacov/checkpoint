@@ -3,9 +3,9 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { capture, disable, optIn } from "../src/api.ts";
+import { capture, disable, optIn, sessionStart, status } from "../src/api.ts";
 import { loadConfig } from "../src/config.ts";
-import { countCheckpointFiles } from "../src/store.ts";
+import { countCheckpointFiles, writeCheckpointFile } from "../src/store.ts";
 import type { CommandRunner, ConversationEntry, CoreDeps } from "../src/types.ts";
 
 function tmp(): string {
@@ -189,4 +189,71 @@ test("disable is a no-op when the project is not configured", async () => {
 	const root = tmp();
 	const result = await disable(root, { runGit: repoRunner(root) });
 	assert.equal(result.disabled, false);
+});
+
+// --- US3: session-start / status ---
+
+const archiveDir = (root: string) => path.join(root, "sessions", "archive");
+
+function seedArchive(root: string, count: number): void {
+	for (let i = 0; i < count; i += 1) {
+		// Zero-padded so lexicographic order matches creation order (oldest first).
+		writeCheckpointFile(archiveDir(root), `2026-06-22-${String(i).padStart(3, "0")}`, `c${i}`);
+	}
+}
+
+test("sessionStart prunes the archive to the max (oldest first) and reports pending count", async () => {
+	const root = tmp();
+	writeConfig(root, { maxArchivedCheckpoints: 50 });
+	seedArchive(root, 53);
+	writeCheckpointFile(pendingDir(root), "p1", "x");
+	writeCheckpointFile(pendingDir(root), "p2", "y");
+
+	const result = await sessionStart(root, { runGit: repoRunner(root) });
+	assert.equal(result.pendingCount, 2);
+	assert.equal(result.prunedCount, 3);
+	assert.equal(countCheckpointFiles(archiveDir(root)), 50);
+
+	// Oldest removed: the three lowest-numbered files are gone, the newest remain.
+	const remaining = await sessionStart(root, { runGit: repoRunner(root) });
+	assert.equal(remaining.prunedCount, 0);
+});
+
+test("sessionStart does not prune when archive is at or below the max", async () => {
+	const root = tmp();
+	writeConfig(root, { maxArchivedCheckpoints: 50 });
+	seedArchive(root, 10);
+	const result = await sessionStart(root, { runGit: repoRunner(root) });
+	assert.equal(result.prunedCount, 0);
+	assert.equal(countCheckpointFiles(archiveDir(root)), 10);
+});
+
+test("sessionStart returns zeros for an unconfigured project", async () => {
+	const root = tmp();
+	const result = await sessionStart(root, { runGit: repoRunner(root) });
+	assert.deepEqual(result, { pendingCount: 0, prunedCount: 0 });
+});
+
+test("status reports configured/enabled state, dirs, and counts", async () => {
+	const root = tmp();
+	await optIn(root, { runGit: repoRunner(root) });
+	writeCheckpointFile(pendingDir(root), "p1", "x");
+	seedArchive(root, 2);
+
+	const result = await status(root, { runGit: repoRunner(root) });
+	assert.equal(result.configured, true);
+	assert.equal(result.enabled, true);
+	assert.equal(result.pendingCount, 1);
+	assert.equal(result.archivedCount, 2);
+	assert.ok(result.pendingDir.endsWith(path.join("sessions", "pending")));
+	assert.ok(result.archiveDir.endsWith(path.join("sessions", "archive")));
+});
+
+test("status on an unconfigured project reports configured:false with zero counts", async () => {
+	const root = tmp();
+	const result = await status(root, { runGit: repoRunner(root) });
+	assert.equal(result.configured, false);
+	assert.equal(result.enabled, false);
+	assert.equal(result.pendingCount, 0);
+	assert.equal(result.archivedCount, 0);
 });
