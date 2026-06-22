@@ -216,7 +216,8 @@ first).
 - **SC-002**: A fresh project can be opted in and produce its first recoverable checkpoint
   with no configuration beyond the single opt-in action.
 - **SC-003**: Checkpoint file size stays bounded regardless of session length — never
-  exceeding the recent-entries count times the per-entry limit (plus fixed header).
+  exceeding the recent-entries count times the per-entry limit, plus a constant-size header
+  template (fixed markdown headings and git-facts block that do not grow with session length).
 - **SC-004**: Raw checkpoint markdown never appears as tracked content in version control,
   while the opt-in configuration and directory placeholders always do.
 - **SC-005**: The archive never exceeds the configured maximum number of checkpoints after a
@@ -235,7 +236,7 @@ first).
   logic close to verbatim, per the project's stated decisions.
 - Default tuning values match the reference extension: recent-entries default 24, per-entry
   limit default 4000 characters, maximum archived checkpoints default 50, with a dedup
-  window of roughly 20 seconds.
+  window of 20 seconds.
 - The agent-neutral config file is `.checkpoint.json` at the project root and is tracked in
   git; the legacy `.pi/checkpoint.json` is read during the transition.
 - Raw checkpoints live under `sessions/pending/` and `sessions/archive/` as markdown and are

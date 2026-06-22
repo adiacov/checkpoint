@@ -8,7 +8,8 @@ details live in `tasks.md`; this is a run/validation guide only.
 
 ## Prerequisites
 
-- Node.js 18+ (repo machine has 24.15.0), `git` on PATH.
+- Node.js 18+ to *consume* the built core (it ships ES2022/NodeNext output); the core itself
+  is built/tested on Node 24.x (repo machine has 24.15.0). `git` on PATH.
 - The core built/runnable from `core/` (`npm install` once dev deps exist).
 
 ## Setup

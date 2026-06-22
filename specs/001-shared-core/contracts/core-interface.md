@@ -4,8 +4,9 @@
 
 This is the stable seam every agent adapter calls (Constitution Principle V, FR-014). It is a
 Node/TS module interface, not a network API. Adapters provide the two agent-specific inputs
-(git runner + conversation entries) and invoke the five capabilities. No adapter reimplements
-any logic behind this surface.
+(git runner + conversation entries) and invoke the five user-facing capabilities (optIn,
+disable, status, sessionStart, capture), plus the `detectProject` resolver they share. No
+adapter reimplements any logic behind this surface.
 
 ## Injected dependencies
 

@@ -37,9 +37,10 @@ Claude plugin, Codex). Cross-platform path handling (POSIX + Windows separators 
 
 **Project Type**: Single library (the shared core). Adapters are separate, later features.
 
-**Performance Goals**: Capture completes well under one session-shutdown budget (target
-< 250 ms excluding git subprocess latency); checkpoint size bounded to
-`recentEntries × maxTextPerEntry` + fixed header regardless of session length.
+**Performance Goals**: Capture completes well under one session-shutdown budget (aspirational
+target < 250 ms excluding git subprocess latency — not a spec-level requirement and not gated
+by a test); checkpoint size bounded to `recentEntries × maxTextPerEntry` + constant-size header
+regardless of session length (this bound *is* enforced, via SC-003 / quickstart Scenario 5).
 
 **Constraints**: Agent-neutral (no SDK imports); git subprocess calls must degrade gracefully
 in non-repo dirs; never throw away a checkpoint silently; never track raw checkpoint markdown.

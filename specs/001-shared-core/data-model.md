@@ -94,8 +94,8 @@ capture).
 
 ## Result types (returned to callers)
 
-- `CaptureResult`: `{ written: boolean; filePath?: string; skippedReason?: "disabled" |
-  "empty-session" | "reload" | "duplicate"; error?: string }`
+- `CaptureResult`: `{ written: boolean; filePath?: string; skippedReason?: "not-configured" |
+  "disabled" | "empty-session" | "reload" | "duplicate"; error?: string }`
 - `OptInResult`: `{ configPath; pendingDir; archiveDir; addedIgnoreRules: string[] }`
 - `StatusResult`: `{ configured: boolean; enabled: boolean; pendingDir; archiveDir;
   pendingCount: number; archivedCount: number }`
