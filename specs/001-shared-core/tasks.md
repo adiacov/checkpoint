@@ -48,11 +48,11 @@ every capability depends on.
 
 **⚠️ CRITICAL**: No user story can be completed until this phase is done.
 
-- [ ] T005 [P] Define all shared types in `core/src/types.ts` — `CheckpointConfig`, `ProjectContext`, `ConversationEntry`, `ContentBlock`, `CommandRunner`, `CoreDeps`, `GitFacts`, and result types (`CaptureResult`, `OptInResult`, `StatusResult`, `SessionStartResult`) per data-model.md + contracts/core-interface.md
-- [ ] T006 Implement config load + `normalizeConfig` in `core/src/config.ts`: read `.checkpoint.json`, fall back to legacy `.pi/checkpoint.json`, apply every documented default and clamp (positive-int fields, reject absolute/`..` dirs, strict `enabled === true`, `skipEmptySessions !== false`) per data-model.md CheckpointConfig table + research §D3 (FR-008, FR-009) — depends on T005
-- [ ] T007 [P] Implement `core/src/git.ts`: default `node:child_process` `CommandRunner`, `resolveRoot` via `git rev-parse --show-toplevel` (fallback to cwd), and `gitFacts` collecting branch/status/diff-stat/last-5-commits in parallel with safe fallbacks for non-repo/non-zero exits per research §D4 (FR-002) — depends on T005
-- [ ] T008 [P] Implement shared store primitives in `core/src/store.ts`: `ensureDir`, resolve pending/archive paths from config, list `*.md` checkpoints, and `pendingCount` / `archivedCount` per data-model.md Stores — depends on T005
-- [ ] T009 Implement `detectProject(cwd, deps)` in `core/src/api.ts` (resolve root via T007, load+normalize config via T006) and create `core/src/index.ts` re-exporting the public surface per contracts/core-interface.md — depends on T006, T007
+- [X] T005 [P] Define all shared types in `core/src/types.ts` — `CheckpointConfig`, `ProjectContext`, `ConversationEntry`, `ContentBlock`, `CommandRunner`, `CoreDeps`, `GitFacts`, and result types (`CaptureResult`, `OptInResult`, `StatusResult`, `SessionStartResult`) per data-model.md + contracts/core-interface.md
+- [X] T006 Implement config load + `normalizeConfig` in `core/src/config.ts`: read `.checkpoint.json`, fall back to legacy `.pi/checkpoint.json`, apply every documented default and clamp (positive-int fields, reject absolute/`..` dirs, strict `enabled === true`, `skipEmptySessions !== false`) per data-model.md CheckpointConfig table + research §D3 (FR-008, FR-009) — depends on T005
+- [X] T007 [P] Implement `core/src/git.ts`: default `node:child_process` `CommandRunner`, `resolveRoot` via `git rev-parse --show-toplevel` (fallback to cwd), and `gitFacts` collecting branch/status/diff-stat/last-5-commits in parallel with safe fallbacks for non-repo/non-zero exits per research §D4 (FR-002) — depends on T005
+- [X] T008 [P] Implement shared store primitives in `core/src/store.ts`: `ensureDir`, resolve pending/archive paths from config, list `*.md` checkpoints, and `pendingCount` / `archivedCount` per data-model.md Stores — depends on T005
+- [X] T009 Implement `detectProject(cwd, deps)` in `core/src/api.ts` (resolve root via T007, load+normalize config via T006) and create `core/src/index.ts` re-exporting the public surface per contracts/core-interface.md — depends on T006, T007
 
 **Checkpoint**: Foundation ready — user stories can now proceed.
 
