@@ -21,6 +21,35 @@ exists to close.
 This is the third adapter, following the Claude Code adapter (002). It mirrors that adapter's
 structure, testing, and build discipline, adapted to pi's extension surface.
 
+## Clarifications
+
+### Session 2026-06-24
+
+Resolved during clarification from existing project context (the reference extension as parity
+baseline, the Claude Code adapter as a structural template, and the already-complete core API).
+Per the standing instruction to resolve ambiguities with best judgment, these were decided rather
+than escalated; each is recorded so downstream planning is unambiguous.
+
+- Q: How is the pi adapter loaded — a single in-process pi extension, or an external compiled
+  "bridge" process like the Claude Code adapter? → A: A single in-process pi extension module
+  (mirroring `reference/checkpoint.ts`) that imports the compiled `@checkpoint/core` and calls it
+  directly. pi runs extensions in-process via its `ExtensionAPI`, so the Claude Code adapter's
+  external Node bridge (needed only because Claude Code shells out from markdown/hook commands)
+  does not apply here.
+- Q: Where does the conversation transcript come from in pi? → A: The live pi session manager's
+  entries (e.g. `getBranch()` / `getEntries()`), translated into the core's `ConversationEntry[]`
+  — not parsed from JSONL transcript files as the Claude Code adapter does.
+- Q: Does this feature change the shared core? → A: No core change is expected; the core already
+  exposes every needed capability and already reads the legacy `.pi/checkpoint.json`. If a genuine
+  gap surfaces, the missing behavior is added to the core (never duplicated into the adapter).
+- Q: What command name does the "opt-in" / enable command use inside pi? → A: `checkpoint-enable`,
+  matching the reference extension (the project's "opt-in" command maps to pi's enable command);
+  the manual/disable/status names match across adapters.
+- Q: Must the adapter compile to JavaScript, or can pi load TypeScript directly? → A: The adapter
+  source is authored in TypeScript (like the reference) and the project's build/type-check/lint/
+  test gates run against it; whether pi consumes `.ts` or a compiled artifact at install time is an
+  install/distribution concern owned by feature 006, not this feature.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Automatic end-of-session checkpoint in pi (Priority: P1)
