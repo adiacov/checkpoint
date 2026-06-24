@@ -114,7 +114,7 @@ explicitly **best-effort** and every gap is documented, not emulated:
 This completes all three originally-planned adapters (constitution ship order: core → Claude → pi →
 Codex).
 
-**Feature 6 — install / distribution (`006-install-distribution`): DONE (on branch, not yet merged).**
+**Feature 6 — install / distribution (`006-install-distribution`): DONE and merged to `main`.**
 
 A single dependency-free Node ESM installer `scripts/install.mjs` (verbs `install` / `uninstall` /
 `status`) that places each adapter from this repo into its agent's load location. Contains **no**
@@ -143,7 +143,7 @@ checkpoint logic (Constitution I) — it only places/links files and wires two d
 ## Active work
 
 None in progress. Next: run the unblocked in-agent smoke tests (002 T031, 004 T023, 005 T024) via a
-real install, merge `005` and `006` to `main`, then pick `007` (config single-source migration).
+real install, then pick `007` (config single-source migration).
 
 ## Next action — feature backlog
 
