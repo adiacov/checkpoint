@@ -13,10 +13,7 @@
 				"name": "adiacov"
 			},
 			"category": "productivity",
-			"source": {
-				"source": "local",
-				"path": "./adapters/claude-code"
-			}
+			"source": "./adapters/claude-code"
 		}
 	]
 }
