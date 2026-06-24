@@ -66,7 +66,21 @@ The hooks and slash commands invoke `node "${CLAUDE_PLUGIN_ROOT}/dist/index.js" 
 
 ## Install
 
-Automated install (symlink-from-repo preferred, copy+sync fallback) is delivered by the
-install/distribution feature (`006`). Until then, point Claude Code at this directory as a plugin
-(e.g. via a local marketplace or in-place plugin load) with the core built. The repository remains
-the single source of truth; the plugin directory is an install target, never edited in place.
+Use the repo's installer (feature `006`):
+
+```bash
+node scripts/install.mjs install --agent claude      # symlink-from-repo (default); copy+sync via --mode copy
+node scripts/install.mjs uninstall --agent claude    # clean removal
+node scripts/install.mjs status                       # what's installed
+```
+
+It registers this repo as a local Claude Code marketplace (`checkpoint-local`, declared in the
+repo-root `.claude-plugin/marketplace.json`) pointing at `adapters/claude-code`, and enables the
+`checkpoint` plugin. The repository stays the single source of truth; the Claude config dir is an
+install target, never edited in place. See [`scripts/install.mjs`](../../scripts/install.mjs) and the
+[feature quickstart](../../specs/006-install-distribution/quickstart.md) for flags (`--dry-run`,
+`--force`, `--no-build`).
+
+> The exact key Claude Code reads for enabled plugins is confirmed by the in-TUI smoke test
+> (`002` T031); if it differs, the installer writes the marketplace registration and the `/plugin`
+> commands to run are printed.

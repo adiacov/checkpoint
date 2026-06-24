@@ -79,8 +79,17 @@ The `notify` program and command prompts invoke `node "<BRIDGE>/dist/index.js" <
 
 ## Install
 
-Automated install (placing `prompts/*.md` in `~/.codex/prompts/`, adding the `notify` snippet to
-`~/.codex/config.toml`, and resolving the `<BRIDGE>` path) is delivered by the install/distribution
-feature (`006`). The `<BRIDGE>` placeholder in the prompts and `config.example.toml` is filled in at
-install time. The repository remains the single source of truth; Codex's config dir is an install
-target, never edited in place.
+Use the repo's installer (feature `006`):
+
+```bash
+node scripts/install.mjs install --agent codex      # symlink-from-repo (default); copy+sync via --mode copy
+node scripts/install.mjs uninstall --agent codex    # clean removal
+```
+
+It symlinks `prompts/*.md` into `~/.codex/prompts/` and inserts a single managed `notify` line into
+`~/.codex/config.toml` with the bridge `<BRIDGE>` path resolved to an absolute
+`adapters/codex/dist/index.js`. The managed line is placed in the **root table** (before the first
+`[table]` header — a TOML requirement) and carries a sentinel comment so uninstall removes exactly
+that line and nothing else. The repository stays the single source of truth; Codex's config dir is an
+install target, never edited in place. See [`scripts/install.mjs`](../../scripts/install.mjs) and the
+[feature quickstart](../../specs/006-install-distribution/quickstart.md) for flags.

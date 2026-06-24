@@ -10,6 +10,9 @@ dist/
 # Agent Workspace legacy local cache
 .agent/
 
+# Per-machine install manifest (006 install/distribution)
+.install/
+
 # Local/private identity, memory, or secrets
 MEMORY.md
 DECISIONS.local.md
