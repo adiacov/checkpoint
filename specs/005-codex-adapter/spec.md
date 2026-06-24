@@ -26,6 +26,42 @@ This is the third adapter; it reuses the Claude Code adapter's **bridge** patter
 Node CLI that Codex's `notify` program and command prompts both invoke), and mirrors the structure,
 testing, and build discipline of `adapters/claude-code` and `adapters/pi`.
 
+## Clarifications
+
+### Session 2026-06-24
+
+Resolved during clarification from current Codex documentation (verified against OpenAI's Codex
+config and custom-prompts references) and the existing adapter patterns. Per the standing
+instruction to resolve ambiguities with best judgment, these were decided rather than escalated;
+each is recorded so downstream planning is unambiguous.
+
+- Q: What capture reason does best-effort automatic capture use? → A: `turn-complete` — an honest
+  reason reflecting Codex's only automation trigger (`agent-turn-complete`). It is a normal
+  (non-reload) reason, so the core applies its standard guards; it is intentionally distinct from
+  the other adapters' `shutdown` because Codex has no true session-end signal. Recorded in the
+  per-agent mapping table.
+- Q: What is the primary transcript source for automatic capture? → A: the automation payload
+  itself — its `input-messages` become `user` entries and `last-assistant-message` becomes one
+  `assistant` entry. This is the stable, documented source and guarantees a real user message so the
+  core's skip-empty behaves correctly. The on-disk Codex session transcript (rollout JSONL) is
+  best-effort enrichment for the **manual** command only, and degrades to git-facts-only when
+  unavailable/unparseable.
+- Q: How do commands execute, given Codex prompts are not code? → A: each command is a markdown
+  prompt that instructs the agent to run the adapter bridge via its shell tool and report the
+  output. Effectiveness depends on the model following the instruction and having shell access — a
+  documented best-effort property of Codex's prompt-only command surface.
+- Q: How is the missing start-of-session pending notice handled? → A: it is a documented capability
+  gap (Codex emits no session-start event). `/checkpoint-status` surfaces the pending count on
+  demand; no divergent behavior is invented to emulate the notice.
+- Q: Does the Codex adapter depend on the Claude Code adapter for the shared bridge code? → A: No.
+  It reuses the bridge *pattern* but is an independent package depending only on `@checkpoint/core`
+  (the neutrality contract: a single runtime dependency). Shared subcommand handlers
+  (`optin`/`disable`/`status`/`manual`/`archive`) are re-expressed thinly here, not imported from
+  another adapter.
+- Q: Where does the concrete bridge install path in the prompts/config come from? → A: it is a
+  documented placeholder resolved by the install/distribution feature (006); this feature ships the
+  prompt templates and a `config.example.toml` with a clearly-marked placeholder path.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Best-effort automatic capture during a Codex session (Priority: P1)
