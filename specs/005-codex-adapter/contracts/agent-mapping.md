@@ -52,9 +52,10 @@ clause + Principle IV).
 ## Add-an-agent checklist status (for this adapter)
 
 - [x] Identify the agent's extension surface (custom prompts + `notify` program; bridge CLI).
-- [ ] Write the adapter (`adapters/codex/`) — implemented in `/speckit-implement`.
+- [x] Write the adapter (`adapters/codex/`).
 - [ ] Wire install (prompts → `~/.codex/prompts/`, `notify` → `~/.codex/config.toml`, bridge path) —
   deferred to feature 006; pointer documented in README + `config.example.toml`.
 - [x] Update this mapping table.
-- [ ] Smoke-test: bridge/core path exercised via unit/contract tests + a scripted bridge smoke test;
-  in-Codex run pending a live Codex install (feature 006).
+- [~] Smoke-test: bridge/core path exercised via unit/contract tests + a scripted bridge smoke test
+  (`tests/smoke.test.ts`, all green); in-Codex prompt-driven run pending a live Codex install
+  (feature 006).

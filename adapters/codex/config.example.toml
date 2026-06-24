@@ -1,0 +1,15 @@
+# Codex checkpoint adapter — automatic capture wiring.
+#
+# Add this to ~/.codex/config.toml. Codex runs the `notify` program after every completed turn
+# (the `agent-turn-complete` event), appending the event JSON as the final argument. The bridge
+# reads it and writes a best-effort checkpoint (reason "turn-complete") for opted-in projects.
+#
+# Replace <BRIDGE> with the installed adapter path. The concrete path is resolved by the
+# install/distribution feature (006); for a manual dev install, point it at this repo's built dist,
+# e.g. /abs/path/to/checkpoint/adapters/codex/dist/index.js
+#
+# Note: capture is best-effort — Codex emits no session-start/end/compact event, so this fires per
+# turn and is bounded by the core's dedup window. For chatty projects, raise dedupWindowSeconds in
+# the project's .checkpoint.json to reduce how many pending checkpoints accrue.
+
+notify = ["node", "<BRIDGE>/dist/index.js", "notify"]

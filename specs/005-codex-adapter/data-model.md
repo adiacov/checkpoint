@@ -61,9 +61,10 @@ exact schema **varies by Codex version**, so the parser is deliberately tolerant
   `tool`); drop everything else (tool-call metadata, token usage, etc.).
 - B4. Content mapping:
   - string → kept as string content.
-  - array → mapped per block: `{type:"text"|...,text}`/`{text}` → `{type:"text", text}`; a block
-    with a `type` that matches the core vocabulary (`thinking`/`toolCall`/`image`) → that block
-    (payload-free for thinking/image); anything else → an open block with its `type`.
+  - array → mapped per block: any text-bearing block (Codex uses `text`, `output_text`,
+    `input_text`, …, i.e. a string `text` field) → `{type:"text", text}`; otherwise a block whose
+    `type` matches the core vocabulary (`thinking`/`toolCall`/`image`) → that block (payload-free for
+    thinking/image); anything else → an open block with its `type`.
   - otherwise → the record passed through as a `Record` (core stringifies it).
 - B5. Order preserved; no truncation/recent-N/dedup (the core does those).
 - B6. If the file is missing/empty/unreadable, return `[]` — graceful degradation. The manual
