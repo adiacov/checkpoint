@@ -140,10 +140,33 @@ checkpoint logic (Constitution I) — it only places/links files and wires two d
   (`002` T031) and whether pi loads a directory-form extension vs. only top-level `*.ts` (`004` T023;
   bundle fallback documented). research.md Decisions 3–4.
 
+**Feature 7 — config single-source migration (`007-config-migration`): DONE (on branch, not yet merged).**
+
+Consolidates every project to the canonical `.checkpoint.json`, removing the legacy
+`.pi/checkpoint.json` second source of truth. Two pieces, no config logic duplicated (Constitution I):
+
+- **Core capability** `migrateConfig(root, { apply })` (`core/src/migrate.ts`, exported from
+  `index.ts`): classifies a directory (`not-configured` / `already-canonical` / `migrated` /
+  `redundant-legacy-removed` / `failed`) and, on apply, writes canonical from the legacy settings
+  (reusing `loadConfig`/`normalizeConfig`/`writeConfig`, so enabled/disabled + tuning + `createdAt`
+  are preserved) **before** removing legacy — never removing legacy if the write fails (no data
+  loss). Both-present → canonical kept byte-unchanged, only legacy removed. Dry-run mutates nothing.
+- **Sweep script** `scripts/migrate-configs.mjs` (dependency-free ESM, mirrors `install.mjs`):
+  discovers immediate children of `--root` (default = this repo's parent), reports per project, and
+  applies only under `--apply`. Never commits; skips dirty git repos (unless `--force`); enforces the
+  **004/006 ordering guard** — refuses to delete legacy while the old pi reference (`checkpoint.ts`)
+  is installed and the shared-core pi adapter (`checkpoint`) is not, unless `--force`.
+- 68 core tests (incl. `migrate.test.ts`) + 6 sweep tests green (all against temp trees; real sibling
+  projects and `~/.pi` never touched); core build/typecheck/lint clean. Verified live via dry-run
+  against the real sibling tree (the guard correctly blocks deletions today because the legacy pi
+  reference is still installed). Full spec-kit artifacts in `specs/007-config-migration/`.
+
 ## Active work
 
-None in progress. Next: run the unblocked in-agent smoke tests (002 T031, 004 T023, 005 T024) via a
-real install, then pick `007` (config single-source migration).
+None in progress. The originally-planned feature set (001–007) is complete. Next: run the unblocked
+in-agent smoke tests (002 T031, 004 T023, 005 T024) via a real install, and — once the shared-core pi
+adapter is installed (`scripts/install.mjs install --agent pi`) — run the config sweep for real
+(`node scripts/migrate-configs.mjs --apply`). Merge `007` to `main`.
 
 ## Next action — feature backlog
 
@@ -157,15 +180,13 @@ Build one at a time with spec-kit (`/speckit-specify`). Numbered to match future
 5. ~~**Install / distribution** (`006`)~~ — DONE (see Current status). `scripts/install.mjs`
    symlink/copy-installs all three adapters; unblocks the deferred in-agent smoke tests
    (002 T031, 004 T023, 005 T024), which are now the next concrete action.
-6. **Config single-source migration** (`007`) — **START HERE (DEPENDS ON `004`).** Make root `.checkpoint.json`
-   the single source of truth across *all* projects. Scan sibling directories for ones still using
-   the legacy `.pi/checkpoint.json`, and for each: merge the legacy config into `.checkpoint.json`
-   (preserving settings, the same `...existing` merge `optIn` does), then remove `.pi/checkpoint.json`.
-   The legacy-delete is only safe **after** `004` re-points pi at the shared core (deleting it while
-   the old pi extension is installed makes pi inert for that project — a regression). The merge logic
-   lives once in the core; the cross-project sweep is a one-off maintenance script (NOT a global
-   PATH CLI — see non-features). Default to dry-run; modify other repos' working trees only, never
-   auto-commit them. Open design questions captured in "Phase 007 — open questions" below.
+6. ~~**Config single-source migration** (`007`)~~ — DONE (see Current status). `core/src/migrate.ts`
+   `migrateConfig` + `scripts/migrate-configs.mjs` sweep consolidate projects to canonical
+   `.checkpoint.json`, dry-run by default, with the 004/006 ordering guard. The Phase-007 open
+   questions below were resolved in `specs/007-config-migration/spec.md` (Clarifications).
+
+The originally-planned roadmap (001–007) is complete. No further features are queued; remaining work
+is operational (run the in-agent smoke tests, then the config sweep for real) and merging `007`.
 
 Non-features (do NOT build): global shell CLI, entry curation/summarization — both forbidden by
 the constitution.
@@ -210,6 +231,10 @@ Read these only when relevant to the current task.
 - `specs/006-install-distribution/` — spec, plan, research (per-agent placement decisions + residual
   smoke-test items), data-model, CLI contract, quickstart for the installer.
 - `scripts/install.mjs` — the installer itself (install/uninstall/status); `tests/install/` its tests.
+- `specs/007-config-migration/` — spec, plan, research, data-model, CLI contract, quickstart for the
+  config sweep.
+- `core/src/migrate.ts` — the `migrateConfig` capability; `scripts/migrate-configs.mjs` — the
+  cross-project sweep; `tests/migrate/` its tests.
 - `.specify/memory/constitution.md` — non-negotiable architecture (core/adapter split, command
   surface, parity, add-an-agent discipline).
 - `PROJECT.md` / `BRIEF.md` — stable identity and the transformation plan.

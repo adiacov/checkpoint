@@ -116,9 +116,14 @@ optional list of filenames. They resolve the project root and config for you.
 | `status(cwd, deps?)`          | Report whether it's configured/enabled, the directories, and the pending/archived counts.                                                                                                                                                                            |
 | `disable(cwd, deps?)`         | Set `enabled: false` only. Everything else is left intact, so re-enabling just works.                                                                                                                                                                                |
 | `detectProject(cwd, deps?)`   | Low-level: resolve the project root and load its config.                                                                                                                                                                                                             |
+| `migrateConfig(root, { apply })` | Consolidate one directory to the canonical `.checkpoint.json`, removing the legacy `.pi/checkpoint.json` (settings preserved; canonical written before legacy removed; both-present → canonical kept, legacy removed). Dry-run by default. Returns a `ConfigMigrationResult`. |
 
 `archive` is the mechanical close-out of the recovery workflow: it only moves files. Turning a raw
 checkpoint into durable memory stays the agent's/consuming project's job (it never curates).
+
+`migrateConfig` is the per-directory engine behind the one-off cross-project sweep
+[`scripts/migrate-configs.mjs`](../scripts/migrate-configs.mjs) (feature 007) — see
+[its quickstart](../specs/007-config-migration/quickstart.md).
 
 **`deps`** is how an agent plugs in:
 

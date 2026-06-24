@@ -133,3 +133,34 @@ export interface ArchiveResult {
 	errors: ArchiveError[];
 	prunedCount: number;
 }
+
+/**
+ * Classification of a single directory by `migrateConfig` (config single-source migration, 007):
+ * - `not-configured`: neither `.checkpoint.json` nor `.pi/checkpoint.json` present.
+ * - `already-canonical`: only the canonical `.checkpoint.json` present (nothing to do).
+ * - `migrated`: only the legacy file present → canonical written from it, legacy removed.
+ * - `redundant-legacy-removed`: both present → canonical kept byte-unchanged, legacy removed.
+ * - `failed`: a real IO/parse error (e.g. malformed legacy JSON); legacy left intact.
+ */
+export type ConfigMigrationAction =
+	| "not-configured"
+	| "already-canonical"
+	| "migrated"
+	| "redundant-legacy-removed"
+	| "failed";
+
+/**
+ * Outcome of migrating one directory's config to the canonical single source. The `wroteCanonical`
+ * /`removedLegacy` flags describe the action taken (or, in dry-run, the action that would be taken).
+ * Canonical is always written before legacy is removed; on a write failure the action is `failed`
+ * and the legacy file is left intact, so a project never loses its only config copy.
+ */
+export interface ConfigMigrationResult {
+	root: string;
+	action: ConfigMigrationAction;
+	canonicalPath: string;
+	legacyPath: string;
+	wroteCanonical: boolean;
+	removedLegacy: boolean;
+	error: string | null;
+}
