@@ -1,0 +1,26 @@
+{
+	"name": "@checkpoint/pi",
+	"version": "0.1.0",
+	"description": "pi adapter for checkpoint: thin in-process extension (commands + lifecycle handlers) wrapping @checkpoint/core.",
+	"license": "MIT",
+	"type": "module",
+	"engines": {
+		"node": ">=18"
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"typecheck": "tsc -p tsconfig.json --noEmit",
+		"test": "node --import tsx --test \"tests/*.test.ts\"",
+		"format": "prettier --write .",
+		"lint": "prettier --check ."
+	},
+	"dependencies": {
+		"@checkpoint/core": "file:../../core"
+	},
+	"devDependencies": {
+		"@types/node": "^22.20.0",
+		"prettier": "^3.3.3",
+		"tsx": "^4.19.2",
+		"typescript": "^5.6.3"
+	}
+}
