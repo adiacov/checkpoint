@@ -5,16 +5,18 @@
  */
 
 import {
+	copyFileSync,
 	existsSync,
 	mkdirSync,
 	readdirSync,
 	readFileSync,
+	renameSync,
 	statSync,
 	unlinkSync,
 	writeFileSync,
 } from "node:fs";
 import path from "node:path";
-import type { CheckpointConfig } from "./types.js";
+import type { ArchiveError, ArchiveSkip, CheckpointConfig } from "./types.js";
 
 /** Absolute path to the pending checkpoint directory. */
 export function pendingDirPath(root: string, config: CheckpointConfig): string {
@@ -116,6 +118,82 @@ export function ensureGitIgnoreRules(root: string, config: CheckpointConfig): st
 	const section = ["# Raw checkpoint files", ...missingRules].join("\n");
 	writeFileSync(gitignorePath, `${current}${prefix}${section}\n`, "utf8");
 	return missingRules;
+}
+
+/**
+ * Move checkpoint files from the pending directory to the archive directory — the mechanical half
+ * of recovery (Constitution Principle III: this only moves files, it never reads or curates their
+ * content). When `names` is omitted/empty, every pending `*.md` is archived. Each requested file is
+ * accounted for in exactly one of moved/skipped/errors, so nothing is silently lost:
+ *
+ * - a non-`*.md` name → skipped `not-checkpoint` (e.g. `.gitkeep`, never moved);
+ * - a name absent from pending → skipped `already-archived` if it is already in the archive, else
+ *   `not-found` (this is also the idempotent re-run path);
+ * - a name present in pending whose target already exists in the archive → skipped
+ *   `already-archived`, leaving the pending copy untouched (never overwrites, never loses);
+ * - otherwise the file is moved (rename, falling back to copy+unlink across devices) and reported
+ *   in `moved`.
+ *
+ * Pruning is NOT done here — the caller (`archive`) runs the shared `pruneArchive` afterward.
+ */
+export function archiveCheckpointFiles(
+	root: string,
+	config: CheckpointConfig,
+	names?: string[],
+): { moved: string[]; skipped: ArchiveSkip[]; errors: ArchiveError[] } {
+	const pendingDir = pendingDirPath(root, config);
+	const archiveDir = archiveDirPath(root, config);
+	const requested = names && names.length > 0 ? names : listCheckpointFiles(pendingDir);
+
+	const moved: string[] = [];
+	const skipped: ArchiveSkip[] = [];
+	const errors: ArchiveError[] = [];
+
+	for (const name of requested) {
+		// Use only the basename so a caller can never escape the configured directories.
+		const safeName = path.basename(name);
+		if (!safeName.endsWith(".md")) {
+			skipped.push({ name: safeName, reason: "not-checkpoint" });
+			continue;
+		}
+		const src = path.join(pendingDir, safeName);
+		const dest = path.join(archiveDir, safeName);
+		if (!existsSync(src)) {
+			skipped.push({
+				name: safeName,
+				reason: existsSync(dest) ? "already-archived" : "not-found",
+			});
+			continue;
+		}
+		if (existsSync(dest)) {
+			// Same name already archived: never overwrite, never delete the pending copy.
+			skipped.push({ name: safeName, reason: "already-archived" });
+			continue;
+		}
+		try {
+			ensureDir(archiveDir);
+			moveFile(src, dest);
+			moved.push(safeName);
+		} catch (error) {
+			errors.push({
+				name: safeName,
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+	}
+
+	return { moved, skipped, errors };
+}
+
+/** Move a file, falling back to copy+unlink when rename crosses a device boundary (EXDEV). */
+function moveFile(src: string, dest: string): void {
+	try {
+		renameSync(src, dest);
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== "EXDEV") throw error;
+		copyFileSync(src, dest);
+		unlinkSync(src);
+	}
 }
 
 /**

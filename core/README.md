@@ -104,17 +104,21 @@ let's refactor the parser
 
 ## API
 
-Every function takes `(cwd, deps?)` — `capture` also takes a `reason`. They resolve the project
-root and config for you.
+Every function takes `(cwd, deps?)` — `capture` also takes a `reason`, and `archive` takes an
+optional list of filenames. They resolve the project root and config for you.
 
-| Function                     | What it does                                                                                                          |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `optIn(cwd, deps?)`          | Turn checkpointing on: write config with defaults, create the dirs + `.gitkeep`, add ignore rules. Safe to run twice. |
-| `capture(cwd, reason, deps)` | Write a checkpoint — unless a guard skips it (see below). Needs `deps.entries`.                                       |
-| `sessionStart(cwd, deps?)`   | Prune the archive to its limit and return the pending count.                                                          |
-| `status(cwd, deps?)`         | Report whether it's configured/enabled, the directories, and the pending/archived counts.                             |
-| `disable(cwd, deps?)`        | Set `enabled: false` only. Everything else is left intact, so re-enabling just works.                                 |
-| `detectProject(cwd, deps?)`  | Low-level: resolve the project root and load its config.                                                              |
+| Function                      | What it does                                                                                                                                                                                                                                                         |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `optIn(cwd, deps?)`           | Turn checkpointing on: write config with defaults, create the dirs + `.gitkeep`, add ignore rules. Safe to run twice.                                                                                                                                                |
+| `capture(cwd, reason, deps)`  | Write a checkpoint — unless a guard skips it (see below). Needs `deps.entries`.                                                                                                                                                                                      |
+| `archive(cwd, names?, deps?)` | Move processed checkpoints from pending → archive, then prune. Names a file list, or all pending when omitted. Idempotent, collision-safe (never overwrites/loses), never reads file content. Returns an `ArchiveResult` (`moved`/`skipped`/`errors`/`prunedCount`). |
+| `sessionStart(cwd, deps?)`    | Prune the archive to its limit and return the pending count.                                                                                                                                                                                                         |
+| `status(cwd, deps?)`          | Report whether it's configured/enabled, the directories, and the pending/archived counts.                                                                                                                                                                            |
+| `disable(cwd, deps?)`         | Set `enabled: false` only. Everything else is left intact, so re-enabling just works.                                                                                                                                                                                |
+| `detectProject(cwd, deps?)`   | Low-level: resolve the project root and load its config.                                                                                                                                                                                                             |
+
+`archive` is the mechanical close-out of the recovery workflow: it only moves files. Turning a raw
+checkpoint into durable memory stays the agent's/consuming project's job (it never curates).
 
 **`deps`** is how an agent plugs in:
 
@@ -152,10 +156,11 @@ default, so a bare opt-in just works:
 
 ## Where this fits
 
-The core only does capture. It does **not** read your agent's transcript, register commands, or
-decide what's worth remembering — those belong to the agent adapter and to your project's own
-instructions. Turning a raw checkpoint into durable memory is a separate, deliberate step you (or
-your agent) take when reviewing `sessions/pending/`.
+The core does capture and the mechanical archive move. It does **not** read your agent's transcript,
+register commands, or decide what's worth remembering — those belong to the agent adapter and to
+your project's own instructions. Turning a raw checkpoint into durable memory is a separate,
+deliberate step you (or your agent) take when reviewing `sessions/pending/`; the core's `archive`
+only moves the files you've finished with out of the way (it never curates their content).
 
 ```
 your agent (adapter)  ──►  @checkpoint/core  ──►  sessions/pending/*.md

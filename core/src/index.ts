@@ -2,8 +2,8 @@
  * Public surface of the shared checkpoint core. Adapters import only from here.
  *
  * Capabilities (added across implementation phases): detectProject, optIn, disable, status,
- * sessionStart, capture. See contracts/core-interface.md.
+ * sessionStart, capture, archive. See contracts/core-interface.md.
  */
 
 export * from "./types.js";
-export { capture, detectProject, disable, optIn, sessionStart, status } from "./api.js";
+export { archive, capture, detectProject, disable, optIn, sessionStart, status } from "./api.js";

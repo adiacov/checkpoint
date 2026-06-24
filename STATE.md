@@ -37,9 +37,28 @@ with zero duplicated checkpoint logic (enforced by a neutrality test):
   unconfirmed until then: whether `$CLAUDE_PLUGIN_ROOT` is available to slash-command bash (it is
   for hooks per docs).
 
+**Feature 3 — recovery / integration workflow (`003-recovery-workflow`): DONE (on branch, not yet merged).**
+
+Builds the back half of the lifecycle the core deliberately omits, split along Principle III:
+
+- **Mechanical (core):** new standalone `archive(cwd, names?, deps?)` capability — moves checkpoints
+  pending→archive then reuses `pruneArchive`. Explicit file list or all-pending (`*.md` only, never
+  `.gitkeep`); idempotent + collision-safe (skip-and-report `already-archived`, never overwrites/loses);
+  batch-resilient; returns `ArchiveResult { moved, skipped, errors, prunedCount }`; never reads file
+  content. Lives in `store.ts` (`archiveCheckpointFiles`) + `api.ts` (`archive`). 61 core tests green.
+- **Workflow (docs):** `WORKFLOWS.md` "Pending checkpoint handling" is now the single authoritative
+  recovery procedure (start-of-session step 3 points to it, no duplicate); the file-move step is
+  mechanized via the `archive` op, curation stays the agent's job.
+- **Adapter:** Claude Code bridge gains `runArchive`/`formatArchive` + an `archive` CLI subcommand
+  (NOT a fifth slash command — four-command surface preserved). Zero duplicated move/prune logic
+  (contract/neutrality test extended). 18 adapter tests green. End-to-end bridge smoke verified
+  (status → targeted+missing archive → all → idempotent no-op).
+
+Specs in `specs/003-recovery-workflow/`. Build/lint/typecheck clean in both packages.
+
 ## Active work
 
-None in progress. Pick the next feature from the backlog below (`003` is next).
+None in progress. Next: merge `003-recovery-workflow` to `main`, then pick `004` from the backlog.
 
 ## Next action — feature backlog
 
@@ -47,12 +66,9 @@ Build one at a time with spec-kit (`/speckit-specify`). Numbered to match future
 (core was `001`). Recommended order is top-to-bottom.
 
 1. ~~**Claude Code adapter** (`002`)~~ — DONE (see Current status).
-2. **Recovery / integration workflow** (`003`) — START HERE. Review
-   `sessions/pending/`, persist durable bits into project memory, move processed files to
-   `sessions/archive/`. The core deliberately never does this; without it, pending piles up and
-   the archive-prune has nothing to prune. (WORKFLOWS.md already describes the manual version.)
-3. **pi adapter** (`004`) — re-point the existing `~/.pi/.../checkpoint.ts` at the shared core
-   instead of duplicating logic. Lowest risk (reference is vendored).
+2. ~~**Recovery / integration workflow** (`003`)~~ — DONE (see Current status).
+3. **pi adapter** (`004`) — START HERE. Re-point the existing `~/.pi/.../checkpoint.ts` at the shared
+   core instead of duplicating logic. Lowest risk (reference is vendored).
 4. **Codex adapter** (`005`) — prompts (slash commands) + config `notify` for best-effort
    automatic capture.
 5. **Install / distribution** (`006`) — symlink-from-repo (preferred) or copy+sync to place each

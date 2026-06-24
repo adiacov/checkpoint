@@ -6,12 +6,7 @@ This file is the primary workflow authority. Agent-specific adapter files should
 
 1. Read the agent adapter/instruction file for the current tool if present.
 2. Read `STATE.md` if present. Treat it as the single canonical current-context entrypoint, not as a general instruction file.
-3. Always check whether `sessions/pending/` contains checkpoint files. If it does, perform bounded checkpoint recovery before normal work:
-
-   * read checkpoint summaries/headers first, not full raw transcripts unless necessary;
-   * extract only durable goals, decisions, current state, next actions, blockers, changed files, and important realizations;
-   * update `STATE.md` or durable memory only when the checkpoint contains still-relevant information;
-   * move processed checkpoint files to `sessions/archive/`.
+3. Always check whether `sessions/pending/` contains checkpoint files. If it does, perform bounded checkpoint recovery before normal work, following the single authoritative procedure in [Pending checkpoint handling](#pending-checkpoint-handling) below.
 4. Classify the user's request before loading extra project context:
 
    * discussion/brainstorming: keep context minimal and ask before broad file reads;
@@ -45,17 +40,19 @@ This file is the primary workflow authority. Agent-specific adapter files should
 
 ## Pending checkpoint handling
 
-Checkpoint recovery is automatic at session start, but bounded:
+This is the single authoritative recovery / integration procedure. Checkpoint recovery is automatic at session start, but bounded:
 
 1. inspect pending checkpoint summaries/headers before continuing normal work;
 2. read full raw checkpoint content only when the summary is insufficient for recovery;
 3. extract only durable goals, decisions, current state, next actions, blockers, changed files, and important realizations;
 4. update project context/memory/docs only with still-relevant information;
-5. move processed checkpoint files to `sessions/archive/`.
+5. archive every processed checkpoint — even one that warranted no memory update — so the pending count reflects only outstanding work.
+
+Step 5 is mechanical and performed by the checkpoint tooling, not by hand-moving files: run the adapter's `archive` operation (e.g. `node "${CLAUDE_PLUGIN_ROOT}/dist/index.js" archive [files...] "$PWD"`, or all pending when no files are named), which calls `@checkpoint/core`'s `archive()` to move the files from `sessions/pending/` to `sessions/archive/` and prune the archive. It is idempotent and never overwrites or loses a file.
 
 Do not blindly copy raw conversation into durable memory.
 
-Checkpoint files are raw recovery evidence, not curated memory. Manual durable-memory updates remain preferred when practical.
+Checkpoint files are raw recovery evidence, not curated memory. Deciding what is durable is your (the agent's) judgment plus the consuming project's instructions — never the tooling's. Manual durable-memory updates remain preferred when practical; only the file move in step 5 is mechanized.
 
 ## Implementation workflow
 

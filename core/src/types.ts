@@ -104,3 +104,32 @@ export interface SessionStartResult {
 	pendingCount: number;
 	prunedCount: number;
 }
+
+/** Why a named file was not moved during archive (all benign — never an error). */
+export interface ArchiveSkip {
+	name: string;
+	/**
+	 * - `not-found`: the named file is not in the pending directory.
+	 * - `already-archived`: a same-named file already exists in the archive (collision-safe no-op).
+	 * - `not-checkpoint`: an explicitly named file that is not a `*.md` checkpoint (e.g. `.gitkeep`).
+	 */
+	reason: "not-found" | "already-archived" | "not-checkpoint";
+}
+
+/** A file whose move failed with a real IO error (message captured, never thrown). */
+export interface ArchiveError {
+	name: string;
+	error: string;
+}
+
+/**
+ * Outcome of the mechanical `archive` capability. Every requested file (or, in all-mode, every
+ * discovered pending `*.md`) is accounted for in exactly one of `moved`/`skipped`/`errors`, so a
+ * checkpoint is never silently lost. `prunedCount` reflects the post-move archive prune.
+ */
+export interface ArchiveResult {
+	moved: string[];
+	skipped: ArchiveSkip[];
+	errors: ArchiveError[];
+	prunedCount: number;
+}
