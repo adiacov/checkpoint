@@ -9,11 +9,13 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, relative } from "node:path";
 import {
+	archive,
 	capture,
 	disable,
 	optIn,
 	sessionStart,
 	status,
+	type ArchiveResult,
 	type CaptureResult,
 	type ConversationEntry,
 } from "@checkpoint/core";
@@ -137,6 +139,39 @@ export async function runOptIn(cwd: string): Promise<string> {
 export async function runDisable(cwd: string): Promise<string> {
 	await disable(cwd);
 	return "Checkpointing disabled (config kept; re-enable with /checkpoint-optin).";
+}
+
+/** Human-readable rendering of a core ArchiveResult (filenames are archive basenames). */
+export function formatArchive(result: ArchiveResult): string {
+	const { moved, skipped, errors, prunedCount } = result;
+	if (moved.length === 0 && skipped.length === 0 && errors.length === 0) {
+		return "No pending checkpoints to archive.";
+	}
+	const parts: string[] = [];
+	if (moved.length > 0) {
+		parts.push(`Archived ${moved.length} checkpoint(s).`);
+	}
+	if (skipped.length > 0) {
+		parts.push(`Skipped: ${skipped.map((s) => `${s.name} (${s.reason})`).join(", ")}.`);
+	}
+	if (prunedCount > 0) {
+		parts.push(`Pruned ${prunedCount} old archived checkpoint(s).`);
+	}
+	if (errors.length > 0) {
+		parts.push(`Errors: ${errors.map((e) => `${e.name} (${e.error})`).join(", ")}.`);
+	}
+	return parts.join(" ");
+}
+
+/**
+ * Recovery close-out: move processed checkpoints pending→archive via the core. With no names, all
+ * pending checkpoints are archived. Reports "not configured" when the project has not opted in.
+ */
+export async function runArchive(cwd: string, names: string[]): Promise<string> {
+	const s = await status(cwd);
+	if (!s.configured) return "Checkpointing is not configured here. Run /checkpoint-optin.";
+	const result = await archive(cwd, names.length > 0 ? names : undefined);
+	return formatArchive(result);
 }
 
 export async function runStatus(cwd: string): Promise<string> {

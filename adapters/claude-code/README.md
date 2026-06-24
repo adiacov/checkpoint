@@ -28,6 +28,26 @@ everything else. No checkpoint logic lives here (that's the whole point — see 
 Capture only happens in projects that have been opted in. Opt-in is agent-neutral, so a project
 opted in via any other agent is recognized here too.
 
+### Recovery / archive (not a slash command)
+
+Capture is only half the lifecycle. Reviewing the raw checkpoints in `sessions/pending/` and
+promoting the still-relevant bits into durable memory is an **agent-driven workflow** — see the
+single authoritative procedure in [`WORKFLOWS.md`](../../WORKFLOWS.md). Its mechanical close-out
+step (moving processed files to `sessions/archive/`) is exposed by the bridge as an `archive`
+subcommand, which the workflow invokes once it has extracted what it needs:
+
+```bash
+# archive specific reviewed checkpoints
+node "${CLAUDE_PLUGIN_ROOT}/dist/index.js" archive 2026-06-24T...-manual.md "$PWD"
+# or archive all pending checkpoints (trailing arg is always the cwd)
+node "${CLAUDE_PLUGIN_ROOT}/dist/index.js" archive "$PWD"
+```
+
+This is deliberately **not** a fifth slash command: the user-facing surface stays the four
+`/checkpoint*` commands (constitution Principle II), and the move/prune logic lives entirely in
+[`@checkpoint/core`](../../core)'s `archive()` — the adapter only translates args and renders the
+result. Curation (deciding what's durable) is the agent's job, never the code's (Principle III).
+
 ### Capability gap
 
 Capture cannot run on a hard kill (`kill -9`/crash) because no lifecycle hook fires. This is

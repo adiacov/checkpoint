@@ -17,6 +17,7 @@ import {
 import { hasUserMessage } from "./entries.js";
 import { defaultRunner, gitFacts, resolveRoot } from "./git.js";
 import {
+	archiveCheckpointFiles,
 	archiveDirPath,
 	countCheckpointFiles,
 	ensureCheckpointDirs,
@@ -27,6 +28,7 @@ import {
 	writeCheckpointFile,
 } from "./store.js";
 import type {
+	ArchiveResult,
 	CaptureResult,
 	CoreDeps,
 	DisableResult,
@@ -139,6 +141,29 @@ export async function status(cwd: string, deps: CoreDeps = {}): Promise<StatusRe
 		pendingCount: countCheckpointFiles(pendingDir),
 		archivedCount: countCheckpointFiles(archiveDir),
 	};
+}
+
+/**
+ * Archive processed checkpoints — the mechanical close-out of the recovery workflow. Moves the
+ * named pending checkpoints (or all pending `*.md` when `names` is omitted/empty) into the archive
+ * directory, then prunes the archive to its limit. This is pure file movement: it never reads,
+ * summarizes, or promotes checkpoint content into memory — turning evidence into durable memory is
+ * the agent/workflow's job (Constitution Principle III, FR-008..FR-013). Idempotent and
+ * collision-safe; never throws on a normal skip (FR-003..FR-007). No-op (empty result) when the
+ * project is not configured.
+ */
+export async function archive(
+	cwd: string,
+	names?: string[],
+	deps: CoreDeps = {},
+): Promise<ArchiveResult> {
+	const project = await detectProject(cwd, deps);
+	const config = project.config;
+	if (!config) return { moved: [], skipped: [], errors: [], prunedCount: 0 };
+
+	const { moved, skipped, errors } = archiveCheckpointFiles(project.root, config, names);
+	const prunedCount = pruneArchive(project.root, config);
+	return { moved, skipped, errors, prunedCount };
 }
 
 /**

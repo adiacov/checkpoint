@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
-import { capture, disable, optIn, sessionStart, status } from "../src/api.ts";
+import { archive, capture, disable, optIn, sessionStart, status } from "../src/api.ts";
 import { loadConfig } from "../src/config.ts";
 import { countCheckpointFiles, writeCheckpointFile } from "../src/store.ts";
 import type { CommandRunner, ConversationEntry, CoreDeps } from "../src/types.ts";
@@ -257,6 +257,88 @@ test("status on an unconfigured project reports configured:false with zero count
 	assert.equal(result.enabled, false);
 	assert.equal(result.pendingCount, 0);
 	assert.equal(result.archivedCount, 0);
+});
+
+// --- 003: archive (recovery close-out) ---
+
+test("archive moves a batch pending -> archive, leaving pending empty (C1)", async () => {
+	const root = tmp();
+	writeConfig(root);
+	writeCheckpointFile(pendingDir(root), "a", "x");
+	writeCheckpointFile(pendingDir(root), "b", "y");
+
+	const result = await archive(root, ["a.md", "b.md"], { runGit: repoRunner(root) });
+	assert.deepEqual(result.moved.sort(), ["a.md", "b.md"]);
+	assert.equal(result.prunedCount, 0);
+	assert.equal(countCheckpointFiles(pendingDir(root)), 0);
+	assert.equal(countCheckpointFiles(archiveDir(root)), 2);
+});
+
+test("archive partial batch: valid file moved, missing reported (C2)", async () => {
+	const root = tmp();
+	writeConfig(root);
+	writeCheckpointFile(pendingDir(root), "a", "x");
+	const result = await archive(root, ["a.md", "ghost.md"], { runGit: repoRunner(root) });
+	assert.deepEqual(result.moved, ["a.md"]);
+	assert.deepEqual(result.skipped, [{ name: "ghost.md", reason: "not-found" }]);
+});
+
+test("archive prunes the archive to the max after moving (C3)", async () => {
+	const root = tmp();
+	writeConfig(root, { maxArchivedCheckpoints: 50 });
+	seedArchive(root, 50); // archive already full
+	writeCheckpointFile(pendingDir(root), "2026-06-23-new", "n");
+
+	const result = await archive(root, undefined, { runGit: repoRunner(root) });
+	assert.deepEqual(result.moved, ["2026-06-23-new.md"]);
+	assert.equal(result.prunedCount, 1);
+	assert.equal(countCheckpointFiles(archiveDir(root)), 50);
+});
+
+test("archive is collision-safe: already-archived skip, no overwrite (C4)", async () => {
+	const root = tmp();
+	writeConfig(root);
+	writeCheckpointFile(pendingDir(root), "a", "PENDING");
+	writeCheckpointFile(archiveDir(root), "a", "ARCHIVED");
+	const result = await archive(root, ["a.md"], { runGit: repoRunner(root) });
+	assert.deepEqual(result.skipped, [{ name: "a.md", reason: "already-archived" }]);
+	assert.equal(readFileSync(path.join(archiveDir(root), "a.md"), "utf8"), "ARCHIVED");
+});
+
+test("archive on an unconfigured project is an empty no-op (C7)", async () => {
+	const root = tmp();
+	const result = await archive(root, undefined, { runGit: repoRunner(root) });
+	assert.deepEqual(result, { moved: [], skipped: [], errors: [], prunedCount: 0 });
+});
+
+test("archive with an absent pending dir is an empty no-op (C8)", async () => {
+	const root = tmp();
+	writeConfig(root); // configured but never captured -> no pending dir yet
+	const result = await archive(root, undefined, { runGit: repoRunner(root) });
+	assert.deepEqual(result.moved, []);
+	assert.deepEqual(result.errors, []);
+});
+
+test("archive is idempotent: re-running changes nothing and loses nothing (C9)", async () => {
+	const root = tmp();
+	writeConfig(root);
+	writeCheckpointFile(pendingDir(root), "a", "x");
+	const first = await archive(root, ["a.md"], { runGit: repoRunner(root) });
+	assert.deepEqual(first.moved, ["a.md"]);
+
+	const second = await archive(root, ["a.md"], { runGit: repoRunner(root) });
+	assert.deepEqual(second.moved, []);
+	assert.deepEqual(second.skipped, [{ name: "a.md", reason: "already-archived" }]);
+	assert.equal(countCheckpointFiles(archiveDir(root)), 1);
+});
+
+test("archive moves content byte-for-byte without altering it (mechanical only, C10)", async () => {
+	const root = tmp();
+	writeConfig(root);
+	const original = "# Pending Session Checkpoint\n\narbitrary raw body, never curated\n";
+	writeCheckpointFile(pendingDir(root), "a", original);
+	await archive(root, ["a.md"], { runGit: repoRunner(root) });
+	assert.equal(readFileSync(path.join(archiveDir(root), "a.md"), "utf8"), original);
 });
 
 // --- Cross-cutting: agent-neutrality (Constitution Principle I / FR-001) ---

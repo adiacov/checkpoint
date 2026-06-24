@@ -8,6 +8,7 @@
 
 import {
 	readStdin,
+	runArchive,
 	runDisable,
 	runLifecycleCapture,
 	runManual,
@@ -23,7 +24,8 @@ type Subcommand =
 	| "manual"
 	| "optin"
 	| "disable"
-	| "status";
+	| "status"
+	| "archive";
 
 const LIFECYCLE: ReadonlySet<string> = new Set(["session-start", "session-end", "pre-compact"]);
 
@@ -54,9 +56,18 @@ async function main(): Promise<void> {
 		case "status":
 			print(await runStatus(cwd));
 			return;
+		case "archive": {
+			// `archive [name1 name2 ...] <cwd>`: trailing arg is cwd, preceding args are filenames.
+			// Used by the recovery workflow (not a slash command). With no filenames, all pending
+			// checkpoints are archived.
+			const rest = process.argv.slice(3);
+			const archiveCwd = rest.pop() ?? process.cwd();
+			print(await runArchive(archiveCwd, rest));
+			return;
+		}
 		default:
 			process.stderr.write(
-				`Unknown subcommand: ${sub ?? "(none)"}. Expected one of: session-start, session-end, pre-compact, manual, optin, disable, status.\n`,
+				`Unknown subcommand: ${sub ?? "(none)"}. Expected one of: session-start, session-end, pre-compact, manual, optin, disable, status, archive.\n`,
 			);
 			process.exitCode = 2;
 	}
