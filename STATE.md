@@ -56,9 +56,37 @@ Builds the back half of the lifecycle the core deliberately omits, split along P
 
 Specs in `specs/003-recovery-workflow/`. Build/lint/typecheck clean in both packages.
 
+**Feature 4 — pi adapter (`004-pi-adapter`): DONE (on branch `004-pi-adapter`, not yet merged).**
+
+Re-points the pi extension at the shared core, replacing the vendored `reference/checkpoint.ts`
+logic. A thin, **in-process** pi extension in `adapters/pi/` (`@checkpoint/pi`) with zero duplicated
+checkpoint logic (neutrality test enforced):
+
+- A single default-export module (`src/index.ts`) registers the four commands (`checkpoint`,
+  `checkpoint-optin`, `checkpoint-disable`, `checkpoint-status`) and the `session_start` /
+  `session_shutdown` handlers via pi's `ExtensionAPI`, each delegating to the core. No bridge CLI,
+  no markdown commands, no `hooks.json` (pi runs extensions in-process — the key shape difference
+  from the Claude Code adapter).
+- Only real logic is transcript translation (`src/transcript.ts`): pi's live `sessionManager`
+  entries → the core's `ConversationEntry[]` (string/array/bashExecution forms; block mapping). No
+  `user→tool` remap needed (pi has no tool-result-as-user convention).
+- Git runs through `pi.exec` (injected as the core's `runGit`), preserving reference behavior;
+  `session_shutdown` passes the reason straight to the core so reload-gating/skip-empty/dedup stay
+  the core's.
+- Canonical command rename documented (`checkpoint-enable` → `checkpoint-optin`, Principle II —
+  name only, behavior unchanged). Legacy `.pi/checkpoint.json` still works via the core.
+- Type boundary: a minimal local `ExtensionAPI` shim (`src/pi-types.ts`) keeps `@checkpoint/core`
+  the single runtime dependency and the build hermetic; swappable for the real pi SDK at install.
+- 22 tests green (transcript + contract/neutrality + scripted smoke incl. legacy config);
+  build/typecheck/lint clean. Full spec-kit artifacts in `specs/004-pi-adapter/`.
+- **Remaining gap**: in-TUI smoke test (`tasks.md` T023) not yet run — needs the extension in a
+  live pi session (depends on `006` install, or a manual dev install). The full core path is
+  verified via the scripted handler smoke test.
+
 ## Active work
 
-None in progress. Next: merge `003-recovery-workflow` to `main`, then pick `004` from the backlog.
+None in progress. Next: merge `004-pi-adapter` to `main`, then pick `005` (Codex adapter) from the
+backlog.
 
 ## Next action — feature backlog
 
@@ -67,10 +95,9 @@ Build one at a time with spec-kit (`/speckit-specify`). Numbered to match future
 
 1. ~~**Claude Code adapter** (`002`)~~ — DONE (see Current status).
 2. ~~**Recovery / integration workflow** (`003`)~~ — DONE (see Current status).
-3. **pi adapter** (`004`) — START HERE. Re-point the existing `~/.pi/.../checkpoint.ts` at the shared
-   core instead of duplicating logic. Lowest risk (reference is vendored).
-4. **Codex adapter** (`005`) — prompts (slash commands) + config `notify` for best-effort
-   automatic capture.
+3. ~~**pi adapter** (`004`)~~ — DONE (see Current status).
+4. **Codex adapter** (`005`) — START HERE. Prompts (slash commands) + config `notify` for
+   best-effort automatic capture.
 5. **Install / distribution** (`006`) — symlink-from-repo (preferred) or copy+sync to place each
    adapter into its agent's extensions dir. May be folded into the Claude adapter the first time,
    then generalized here.
@@ -115,8 +142,12 @@ Read these only when relevant to the current task.
 - `specs/001-shared-core/` — full spec, plan, contracts, data-model, tasks for the merged core.
 - `specs/002-claude-code-adapter/` — spec, plan, contracts (incl. the per-agent mapping table),
   data-model, tasks for the merged Claude Code adapter.
+- `specs/004-pi-adapter/` — spec, plan, contracts (pi agent-mapping row), data-model, tasks for the
+  pi adapter.
 - `core/README.md` — how the core works and how an adapter calls it.
 - `adapters/claude-code/README.md` — what the Claude Code plugin adds and how to build it.
+- `adapters/pi/README.md` — what the pi extension adds, how it differs from the Claude Code adapter,
+  and how to build it.
 - `.specify/memory/constitution.md` — non-negotiable architecture (core/adapter split, command
   surface, parity, add-an-agent discipline).
 - `PROJECT.md` / `BRIEF.md` — stable identity and the transformation plan.
