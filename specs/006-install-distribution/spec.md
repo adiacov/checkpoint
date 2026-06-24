@@ -8,6 +8,18 @@
 
 **Input**: User description: "Install / distribution (006): a mechanism to install each adapter (Claude Code plugin, pi extension, Codex bridge + prompts) from this repo into its agent's extensions/config location. Preferred approach: symlink-from-repo so the repo stays the single source of truth (per constitution), with copy+sync as a documented fallback. Targets: pi -> ~/.pi/agent/extensions/; Claude Code -> its plugin dir; Codex -> ~/.codex/prompts/ plus config.toml `notify` snippet, resolving the Codex bridge `<BRIDGE>` path. Must build adapters first where needed (dist/), be idempotent, support uninstall, default-safe, and report what it did. Unblocks the deferred in-agent smoke tests for all three adapters (002 T031, 004 T023, 005 T024). Non-features: no global PATH binary; not a memory curator."
 
+## Clarifications
+
+### Session 2026-06-24
+
+Resolved by the maintainer's standing instruction to apply best judgment; recorded here for traceability.
+
+- Q: What form does the installer take? → A: A single repository-local Node script (e.g. `scripts/install.mjs`) with verbs (`install` / `uninstall`) and flags (`--agent`, `--mode`, `--dry-run`, `--force`, target-root override). No global `PATH` binary (constitution non-goal preserved); matches the project's one-off-maintenance-script precedent.
+- Q: Does install build adapters automatically? → A: Yes — when an adapter's `dist/` is missing or older than its `src/`, install runs that adapter's build before placing it; a `--no-build` flag skips and then requires an up-to-date `dist/` (else clear failure, no partial install).
+- Q: How does the tool know which items it created (for safe uninstall and conflict detection)? → A: Three signals: (1) symlinks whose target resolves into this repo are tool-managed; (2) copy-mode installs and the Codex `notify` line are tracked in a per-machine install manifest stored under the repo (git-ignored); (3) the Codex `notify` line carries a sentinel comment marker. Anything at a target that is none of these is treated as user content (conflict-stop unless `--force`).
+- Q: How are tests run without writing into the real `~/.pi`, `~/.codex`, `~/.claude`? → A: Every target root is overridable (e.g. a `--target-root`/env override), so automated tests install into temp directories and never touch the real home; the deferred in-agent smoke tests (002/004/005) are the only steps that use real agent locations and remain manual.
+- Q: Exact per-agent placement mechanism (Claude Code local-plugin/marketplace model; pi single-`.ts`-file extensions and how it resolves `@checkpoint/core`; replacing the legacy `~/.pi/agent/extensions/checkpoint.ts` reference) → A: DEFERRED to plan/research — these are implementation mechanisms, not spec-level acceptance ambiguities. Flagged as the primary research items for `/speckit-plan`.
+
 ## User Scenarios & Testing *(mandatory)*
 
 This repository is the single source of truth for all three adapters. Today there is no
@@ -155,6 +167,10 @@ match.
   required, but each adapter is individually atomic — no half-installed adapter).
 - **Re-install over a copy install with symlink mode (or vice versa)** → detect the existing mode
   and converge to the requested mode, cleaning up the other form.
+- **Legacy pi reference extension present** (`~/.pi/agent/extensions/checkpoint.ts`, the pre-006
+  vendored reference, not created by this tool) → treated as user content: install conflict-stops
+  and reports it unless `--force` is given, so the maintainer consciously replaces the old reference
+  with the shared-core pi adapter.
 
 ## Requirements *(mandatory)*
 
@@ -169,8 +185,9 @@ match.
 - **FR-004**: The system MUST allow installing a single named adapter, a subset, or all adapters in
   one invocation.
 - **FR-005**: For any adapter that requires a build, install MUST ensure the adapter is built
-  (`dist/` present and current) before placing it, or fail clearly instructing the maintainer to
-  build, leaving no partial install.
+  (`dist/` present and current) before placing it, building automatically when `dist/` is missing or
+  stale, leaving no partial install. A `--no-build` option MUST be available that skips building and
+  then requires an up-to-date `dist/`, failing clearly otherwise.
 - **FR-006**: For Codex, install MUST place the custom prompts into the Codex prompts location AND
   wire the `notify` program into the user's Codex `config.toml`, with the bridge path resolved to a
   concrete absolute path (no `<BRIDGE>` placeholder remaining).
@@ -179,7 +196,10 @@ match.
 - **FR-008**: The system MUST provide an uninstall action that removes only what install created
   (symlinks/copied files and the managed Codex `notify` line) and preserves unrelated user content.
 - **FR-009**: The system MUST NOT overwrite content at a target that it did not create, unless the
-  maintainer explicitly opts into replacing it; otherwise it MUST stop and report the conflict.
+  maintainer explicitly opts into replacing it (`--force`); otherwise it MUST stop and report the
+  conflict. The tool MUST be able to distinguish content it created from user content via:
+  symlinks resolving into this repo, a per-machine install manifest (tracking copy-mode files and
+  the Codex `notify` line), and a sentinel comment marker on the managed `notify` line.
 - **FR-010**: The system MUST provide a dry-run/preview mode for both install and uninstall that
   reports planned actions and changes nothing on disk.
 - **FR-011**: Every install/uninstall run MUST report what it did (or would do): per-adapter, the
@@ -234,9 +254,14 @@ match.
 - **Audience is the repo maintainer on their own machine(s)**, not public end users; "distribution"
   means repo → local agents, not publishing to a registry/marketplace. (Driven by the constitution's
   "repo is authoritative; agent extension dirs are install targets".)
-- **The installer is a repository-local script/tool** (run from the repo), not a globally installed
-  binary — consistent with the constitution non-goal "no global `checkpoint` binary on `PATH`" and
-  the project's precedent for one-off maintenance scripts.
+- **The installer is a single repository-local Node script** (e.g. `scripts/install.mjs`) with
+  `install`/`uninstall` verbs and flags (`--agent`, `--mode symlink|copy`, `--dry-run`, `--force`,
+  target-root override), run from the repo — not a globally installed binary, consistent with the
+  constitution non-goal "no global `checkpoint` binary on `PATH`" and the project's precedent for
+  one-off maintenance scripts.
+- **All target roots are overridable** (via flag/env) so automated tests install into temporary
+  directories and never modify the real `~/.pi`, `~/.codex`, or `~/.claude`. Only the deferred
+  in-agent smoke tests touch real agent locations, and those remain manual.
 - **Default target locations** are: pi → `~/.pi/agent/extensions/`; Codex → `~/.codex/prompts/` plus
   `~/.codex/config.toml`; Claude Code → the Claude Code plugin location (exact path resolved during
   planning/research). Targets are overridable for testing (e.g. install into a temp location).
