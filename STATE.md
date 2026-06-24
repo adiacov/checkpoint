@@ -74,9 +74,35 @@ Build one at a time with spec-kit (`/speckit-specify`). Numbered to match future
 5. **Install / distribution** (`006`) — symlink-from-repo (preferred) or copy+sync to place each
    adapter into its agent's extensions dir. May be folded into the Claude adapter the first time,
    then generalized here.
+6. **Config single-source migration** (`007`) — **DEPENDS ON `004`.** Make root `.checkpoint.json`
+   the single source of truth across *all* projects. Scan sibling directories for ones still using
+   the legacy `.pi/checkpoint.json`, and for each: merge the legacy config into `.checkpoint.json`
+   (preserving settings, the same `...existing` merge `optIn` does), then remove `.pi/checkpoint.json`.
+   The legacy-delete is only safe **after** `004` re-points pi at the shared core (deleting it while
+   the old pi extension is installed makes pi inert for that project — a regression). The merge logic
+   lives once in the core; the cross-project sweep is a one-off maintenance script (NOT a global
+   PATH CLI — see non-features). Default to dry-run; modify other repos' working trees only, never
+   auto-commit them. Open design questions captured in "Phase 007 — open questions" below.
 
 Non-features (do NOT build): global shell CLI, entry curation/summarization — both forbidden by
 the constitution.
+
+### Phase 007 — open questions (resolve at `/speckit-specify` time)
+
+1. **Scan scope/root**: "sibling directories" = the immediate children of the current project's
+   parent dir (`../*`)? Configurable root + max depth? How deep do we look for `.pi/checkpoint.json`
+   (root-only, or nested)?
+2. **Ordering gate**: confirmed dependency on `004` — must not delete `.pi/checkpoint.json` until pi
+   reads the canonical file, else pi regresses. How do we verify/assert pi has been migrated before
+   the sweep deletes (e.g. require a flag, or just document the precondition)?
+3. **Invocation vs. "no global CLI"**: the sweep is cross-project, so it's a one-off maintenance
+   script run from this repo (e.g. `scripts/migrate-configs.mjs`), not a PATH-installed CLI and not
+   an in-agent slash command. Confirm this shape stays within the non-features boundary.
+4. **Safety defaults**: default to dry-run (report planned merges/deletes), require an explicit
+   `--apply`; never auto-commit other repos; skip + report dirty/non-git siblings.
+5. **What qualifies for migration**: only dirs with `.pi/checkpoint.json`? Migrate disabled configs
+   too? Precedence when a dir already has BOTH files (canonical wins, then delete legacy)?
+6. **Idempotency**: already-migrated dirs are skipped and reported; re-runs change nothing.
 
 ## Blockers
 
