@@ -114,10 +114,36 @@ explicitly **best-effort** and every gap is documented, not emulated:
 This completes all three originally-planned adapters (constitution ship order: core → Claude → pi →
 Codex).
 
+**Feature 6 — install / distribution (`006-install-distribution`): DONE (on branch, not yet merged).**
+
+A single dependency-free Node ESM installer `scripts/install.mjs` (verbs `install` / `uninstall` /
+`status`) that places each adapter from this repo into its agent's load location. Contains **no**
+checkpoint logic (Constitution I) — it only places/links files and wires two documented edits.
+
+- **Default symlink-from-repo**, `--mode copy` fallback; `--agent claude|pi|codex|all`, `--dry-run`,
+  `--force`, `--no-build`, and a `--target-root <agent=path>` test override. Builds an adapter when
+  its `dist/` is missing/stale (core first); `--no-build` requires an existing `dist/`.
+- **Per-agent placement**: pi → symlink the package dir to `~/.pi/agent/extensions/checkpoint` (deps
+  travel with it); Codex → symlink `prompts/*.md` into `~/.codex/prompts/` **and** insert a managed
+  `notify` line into `~/.codex/config.toml`'s root table (before the first `[table]` header) with the
+  bridge path resolved absolute and a sentinel comment; Claude → register this repo as a local
+  marketplace (new repo-root `.claude-plugin/marketplace.json`) in `known_marketplaces.json` + enable
+  the `checkpoint` plugin in `settings.json`.
+- **Safe & reversible**: idempotent (re-run → `no-op`); conflict-stops on user content (incl. the
+  legacy pi `checkpoint.ts`) unless `--force`; uninstall removes exactly what it created (tracked via
+  a git-ignored per-machine `.install/manifest.json` + repo-pointing-symlink check + the sentinel),
+  preserving unrelated config byte-intact; best-effort across adapters; dry-run mutates nothing.
+- 12 tests green (`tests/install/*.test.mjs`), all against a temp `$HOME` — the real `~/.pi`,
+  `~/.codex`, `~/.claude` are never touched. Verified live via `--dry-run` against the real homedir.
+  Full spec-kit artifacts in `specs/006-install-distribution/`.
+- **Residual (confirm at the unblocked smoke tests)**: the exact Claude enabled-plugins key
+  (`002` T031) and whether pi loads a directory-form extension vs. only top-level `*.ts` (`004` T023;
+  bundle fallback documented). research.md Decisions 3–4.
+
 ## Active work
 
-None in progress. Next: merge `005-codex-adapter` to `main`, then pick `006` (install / distribution)
-from the backlog.
+None in progress. Next: run the unblocked in-agent smoke tests (002 T031, 004 T023, 005 T024) via a
+real install, merge `005` and `006` to `main`, then pick `007` (config single-source migration).
 
 ## Next action — feature backlog
 
@@ -128,12 +154,10 @@ Build one at a time with spec-kit (`/speckit-specify`). Numbered to match future
 2. ~~**Recovery / integration workflow** (`003`)~~ — DONE (see Current status).
 3. ~~**pi adapter** (`004`)~~ — DONE (see Current status).
 4. ~~**Codex adapter** (`005`)~~ — DONE (see Current status).
-5. **Install / distribution** (`006`) — START HERE. Symlink-from-repo (preferred) or copy+sync to
-   place each adapter into its agent's extensions dir (pi `~/.pi/agent/extensions/`, Claude plugin
-   dir, Codex `~/.codex/prompts/` + `config.toml notify`, resolving the Codex `<BRIDGE>` path). May
-   be folded into the Claude adapter the first time, then generalized here. Unblocks the deferred
-   in-agent smoke tests for all three adapters (002 T031, 004 T023, 005 T024).
-6. **Config single-source migration** (`007`) — **DEPENDS ON `004`.** Make root `.checkpoint.json`
+5. ~~**Install / distribution** (`006`)~~ — DONE (see Current status). `scripts/install.mjs`
+   symlink/copy-installs all three adapters; unblocks the deferred in-agent smoke tests
+   (002 T031, 004 T023, 005 T024), which are now the next concrete action.
+6. **Config single-source migration** (`007`) — **START HERE (DEPENDS ON `004`).** Make root `.checkpoint.json`
    the single source of truth across *all* projects. Scan sibling directories for ones still using
    the legacy `.pi/checkpoint.json`, and for each: merge the legacy config into `.checkpoint.json`
    (preserving settings, the same `...existing` merge `optIn` does), then remove `.pi/checkpoint.json`.
@@ -183,6 +207,9 @@ Read these only when relevant to the current task.
 - `adapters/pi/README.md` — what the pi extension adds, how it differs from the Claude Code adapter,
   and how to build it.
 - `adapters/codex/README.md` — what the Codex bridge adds, its best-effort gaps, and how to build it.
+- `specs/006-install-distribution/` — spec, plan, research (per-agent placement decisions + residual
+  smoke-test items), data-model, CLI contract, quickstart for the installer.
+- `scripts/install.mjs` — the installer itself (install/uninstall/status); `tests/install/` its tests.
 - `.specify/memory/constitution.md` — non-negotiable architecture (core/adapter split, command
   surface, parity, add-an-agent discipline).
 - `PROJECT.md` / `BRIEF.md` — stable identity and the transformation plan.

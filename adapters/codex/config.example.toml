@@ -4,9 +4,11 @@
 # (the `agent-turn-complete` event), appending the event JSON as the final argument. The bridge
 # reads it and writes a best-effort checkpoint (reason "turn-complete") for opted-in projects.
 #
-# Replace <BRIDGE> with the installed adapter path. The concrete path is resolved by the
-# install/distribution feature (006); for a manual dev install, point it at this repo's built dist,
-# e.g. /abs/path/to/checkpoint/adapters/codex/dist/index.js
+# `node scripts/install.mjs install --agent codex` does this for you: it resolves <BRIDGE> to the
+# absolute path of this repo's built bridge and inserts the line into ~/.codex/config.toml's ROOT
+# table (before the first [table] header — a TOML requirement), preceded by a `checkpoint-managed`
+# sentinel comment so `uninstall` removes exactly that line. The manual snippet below is for
+# reference / hand-install; replace <BRIDGE> with /abs/path/to/checkpoint/adapters/codex.
 #
 # Note: capture is best-effort — Codex emits no session-start/end/compact event, so this fires per
 # turn and is bounded by the core's dedup window. For chatty projects, raise dedupWindowSeconds in

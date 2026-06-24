@@ -102,7 +102,7 @@ How the user wants to operate long-term: when a new coding agent appears, the us
 
 1. Identify the agent's extension surface: how it registers in-TUI commands, its session-start/end lifecycle hooks, and how it exposes the conversation transcript.
 2. Write a thin adapter under `adapters/<agent>/` that registers the four commands + lifecycle handlers and calls the shared core (no logic duplicated).
-3. Wire install: place/symlink the adapter into the agent's extension dir; document install + opt-in steps.
+3. Wire install: add one **Install Descriptor** for the agent in `scripts/install.mjs` (its source path, target root/default, whether a build is needed, the placements, and any extra wiring like a config edit) so `node scripts/install.mjs install --agent <agent>` places/symlinks it; document install + opt-in steps in the adapter README. Adding the descriptor is the whole install change — no per-agent install script.
 4. Add a row to the per-agent mapping table and note capability gaps (e.g., no auto-exit hook → manual command only).
 5. Smoke-test: each command from the TUI, auto checkpoint on exit (if supported), startup pending notice.
 

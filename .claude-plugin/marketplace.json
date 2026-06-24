@@ -1,0 +1,22 @@
+{
+	"$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+	"name": "checkpoint-local",
+	"description": "Local marketplace for the checkpoint Claude Code plugin, served straight from this repository (the single source of truth). Registered by scripts/install.mjs.",
+	"owner": {
+		"name": "adiacov"
+	},
+	"plugins": [
+		{
+			"name": "checkpoint",
+			"description": "Never lose a coding session: capture git state + recent conversation at session end, recover next time. Thin wrapper around @checkpoint/core.",
+			"author": {
+				"name": "adiacov"
+			},
+			"category": "productivity",
+			"source": {
+				"source": "local",
+				"path": "./adapters/claude-code"
+			}
+		}
+	]
+}

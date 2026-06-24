@@ -80,6 +80,21 @@ npm run build && npm run typecheck && npm run lint
 
 ## Install
 
-Automated install (placing/symlinking this extension into `~/.pi/agent/extensions/`) is delivered
-by the install/distribution feature (`006`). Until then, the repository remains the single source of
-truth; the pi extensions directory is an install target, never edited in place.
+Use the repo's installer (feature `006`):
+
+```bash
+node scripts/install.mjs install --agent pi      # symlink-from-repo (default)
+node scripts/install.mjs uninstall --agent pi    # clean removal
+```
+
+It symlinks this package directory to `~/.pi/agent/extensions/checkpoint` (a directory entry, so the
+adapter's `@checkpoint/core` dependency resolves with it). If the pre-006 reference
+`~/.pi/agent/extensions/checkpoint.ts` is present, install reports a **conflict** and leaves it
+intact — re-run with `--force` to replace the old reference with this shared-core adapter. The
+repository stays the single source of truth; the pi extensions dir is an install target, never edited
+in place. See [`scripts/install.mjs`](../../scripts/install.mjs).
+
+> Whether pi loads an extension exposed as a directory (vs. only top-level `*.ts` files) is confirmed
+> by the in-TUI smoke test (`004` T023). If pi needs a single file, the installer's pi descriptor
+> switches to a bundled single-file build — see
+> [research.md](../../specs/006-install-distribution/research.md) Decision 3.
