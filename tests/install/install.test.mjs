@@ -9,9 +9,32 @@ import { afterEach, beforeEach, test } from "node:test";
 
 import { REPO_ROOT, run } from "../../scripts/install.mjs";
 
+// In-memory stand-in for the `claude plugin` CLI so tests never touch the real Claude install.
+function makeClaudeStub() {
+	const state = { mkt: false, plugin: false, calls: [] };
+	const cli = (args) => {
+		state.calls.push(args.join(" "));
+		const [a, b] = args;
+		if (a === "marketplace" && b === "list") return ok(state.mkt ? "checkpoint-local" : "");
+		if (a === "list") return ok(state.plugin ? "checkpoint@checkpoint-local" : "");
+		if (a === "marketplace" && b === "add") return ((state.mkt = true), ok("added"));
+		if (a === "install") return ((state.plugin = true), ok("installed"));
+		if (a === "uninstall") return ((state.plugin = false), ok(""));
+		if (a === "marketplace" && b === "remove") return ((state.mkt = false), ok(""));
+		return ok("");
+	};
+	cli.state = state;
+	return cli;
+}
+function ok(stdout) {
+	return { ok: true, missing: false, stdout, stderr: "" };
+}
+
 let tmp;
+let claudeStub;
 beforeEach(() => {
 	tmp = mkdtempSync(join(tmpdir(), "ckpt-install-"));
+	claudeStub = makeClaudeStub();
 });
 afterEach(() => {
 	rmSync(tmp, { recursive: true, force: true });
@@ -28,6 +51,7 @@ function opts(extra) {
 		targetRoots: {},
 		home: join(tmp, "home"),
 		installDir: join(tmp, "state"),
+		claudeCli: claudeStub,
 		...extra,
 	};
 }
@@ -125,6 +149,33 @@ test("legacy pi checkpoint.ts is treated as user content (conflict) and removed 
 	const forced = await run(opts({ agents: ["pi"], force: true }));
 	assert.equal(forced.exitCode, 0);
 	assert.ok(!existsSync(legacy), "legacy removed under --force");
+});
+
+test("claude: drives the plugin CLI (marketplace add + install), idempotent, uninstall reverses", async () => {
+	const inst = await run(opts({ agents: ["claude"] }));
+	assert.equal(inst.exitCode, 0);
+	const called = (prefix) => claudeStub.state.calls.some((c) => c.startsWith(prefix));
+	assert.ok(called("marketplace add"), claudeStub.state.calls.join(" | "));
+	assert.ok(called("install checkpoint@checkpoint-local"));
+	assert.ok(claudeStub.state.mkt && claudeStub.state.plugin, "marketplace + plugin registered");
+
+	// re-run → no-op (no second add/install)
+	const again = await run(opts({ agents: ["claude"] }));
+	assert.ok(again.actions.every((a) => a.action === "no-op"), JSON.stringify(again.actions));
+
+	// uninstall reverses both
+	const un = await run(opts({ agents: ["claude"], verb: "uninstall" }));
+	assert.equal(un.exitCode, 0);
+	assert.ok(called("uninstall checkpoint@checkpoint-local"));
+	assert.ok(called("marketplace remove checkpoint-local"));
+	assert.ok(!claudeStub.state.mkt && !claudeStub.state.plugin, "fully removed");
+});
+
+test("claude: missing `claude` CLI is reported as failed, not a crash", async () => {
+	const missingCli = () => ({ ok: false, missing: true, stdout: "", stderr: "`claude` CLI not found on PATH" });
+	const res = await run(opts({ agents: ["claude"], claudeCli: missingCli }));
+	assert.equal(res.exitCode, 1);
+	assert.ok(res.actions.some((a) => a.action === "failed" && /claude/.test(a.detail)));
 });
 
 test("copy mode places real files (not links), re-syncs, and converges from symlink", async () => {

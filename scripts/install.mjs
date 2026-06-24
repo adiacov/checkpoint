@@ -347,73 +347,93 @@ function planUninstallCodexNotify(ctx) {
 	});
 }
 
-// ─────────────────────────────────────────────────────────── Claude marketplace + enable
+// ─────────────────────────────────────────────────────────── Claude plugin (via the claude CLI)
 
-function planClaudeMarketplace(ctx) {
-	const kmPath = join(ctx.roots.claude, "plugins", "known_marketplaces.json");
-	const obj = readJsonSafe(kmPath) ?? {};
-	const cur = obj[CLAUDE_MARKETPLACE];
-	if (cur && cur.installLocation === ctx.repoRoot) {
-		return action("claude", kmPath, "config", "no-op", "marketplace registered");
-	}
-	return action("claude", kmPath, "config", cur ? "updated" : "installed", "register local marketplace", () => {
-		const o = readJsonSafe(kmPath) ?? {};
-		o[CLAUDE_MARKETPLACE] = {
-			source: { source: "local", path: ctx.repoRoot },
-			installLocation: ctx.repoRoot,
-			lastUpdated: new Date().toISOString(),
+// Claude Code installs plugins through its own CLI (marketplace add + plugin install), which copies
+// the plugin into ~/.claude/plugins/cache and registers it in installed_plugins.json. Hand-writing
+// those files is version-fragile and doesn't actually load the plugin, so we drive the real CLI.
+// The runner is injectable (`opts.claudeCli`) so tests never touch the real Claude install.
+export function defaultClaudeCli(args) {
+	try {
+		const stdout = execFileSync("claude", ["plugin", ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+		return { ok: true, missing: false, stdout, stderr: "" };
+	} catch (e) {
+		const missing = e.code === "ENOENT";
+		return {
+			ok: false,
+			missing,
+			stdout: e.stdout?.toString() ?? "",
+			stderr: missing ? "`claude` CLI not found on PATH" : e.stderr?.toString() || e.message,
 		};
-		writeJson(kmPath, o);
-		record(ctx.manifest, { agent: "claude", type: "config", target: kmPath, marker: CLAUDE_MARKETPLACE });
-	});
+	}
 }
 
-function planClaudeEnable(ctx) {
-	const sPath = join(ctx.roots.claude, "settings.json");
-	const obj = readJsonSafe(sPath) ?? {};
-	if (obj.enabledPlugins?.[CLAUDE_PLUGIN_KEY] === true) {
-		return action("claude", sPath, "config", "no-op", "plugin enabled");
+function oneLine(s) {
+	return (s ?? "").split("\n").map((l) => l.trim()).filter(Boolean).join(" ").slice(0, 200);
+}
+
+function planClaude(ctx) {
+	const cli = ctx.opts.claudeCli ?? defaultClaudeCli;
+	const acts = [];
+	const build = planBuild("claude", join(REPO_ROOT, "adapters", "claude-code"), ctx.opts);
+	if (build) acts.push(build);
+
+	const mkList = cli(["marketplace", "list"]);
+	if (mkList.missing) {
+		acts.push(action("claude", "claude CLI", "claude", "failed", "`claude` not found on PATH — install Claude Code first"));
+		return acts;
 	}
-	const exists = obj.enabledPlugins && CLAUDE_PLUGIN_KEY in obj.enabledPlugins;
-	return action("claude", sPath, "config", exists ? "updated" : "installed", "enable plugin", () => {
-		const o = readJsonSafe(sPath) ?? {};
-		o.enabledPlugins = { ...(o.enabledPlugins ?? {}), [CLAUDE_PLUGIN_KEY]: true };
-		writeJson(sPath, o);
-		record(ctx.manifest, { agent: "claude", type: "config", target: sPath, marker: CLAUDE_PLUGIN_KEY });
-	});
+	const hasMkt = mkList.stdout.includes(CLAUDE_MARKETPLACE);
+	const hasPlugin = cli(["list"]).stdout.includes(CLAUDE_PLUGIN_KEY);
+
+	acts.push(
+		hasMkt
+			? action("claude", CLAUDE_MARKETPLACE, "claude", "no-op", "marketplace registered")
+			: action("claude", CLAUDE_MARKETPLACE, "claude", "installed", "claude plugin marketplace add", () => {
+					const r = cli(["marketplace", "add", ctx.repoRoot]);
+					if (!r.ok) throw new Error(`marketplace add failed: ${oneLine(r.stderr)}`);
+				}),
+	);
+	acts.push(
+		hasPlugin
+			? action("claude", CLAUDE_PLUGIN_KEY, "claude", "no-op", "plugin installed")
+			: action("claude", CLAUDE_PLUGIN_KEY, "claude", "installed", "claude plugin install", () => {
+					const r = cli(["install", CLAUDE_PLUGIN_KEY]);
+					if (!r.ok) throw new Error(`plugin install failed: ${oneLine(r.stderr)}`);
+					record(ctx.manifest, { agent: "claude", type: "plugin", target: CLAUDE_PLUGIN_KEY, marker: CLAUDE_MARKETPLACE });
+				}),
+	);
+	return acts;
 }
 
 function planUninstallClaude(ctx) {
-	const kmPath = join(ctx.roots.claude, "plugins", "known_marketplaces.json");
-	const sPath = join(ctx.roots.claude, "settings.json");
+	const cli = ctx.opts.claudeCli ?? defaultClaudeCli;
 	const acts = [];
-
-	const km = readJsonSafe(kmPath);
-	if (km && CLAUDE_MARKETPLACE in km) {
-		acts.push(action("claude", kmPath, "config", "removed", "deregistered marketplace", () => {
-			const o = readJsonSafe(kmPath) ?? {};
-			delete o[CLAUDE_MARKETPLACE];
-			writeJson(kmPath, o);
-			unrecord(ctx.manifest, kmPath, CLAUDE_MARKETPLACE);
-		}));
-	} else {
-		unrecord(ctx.manifest, kmPath, CLAUDE_MARKETPLACE);
-		acts.push(action("claude", kmPath, "config", "no-op", "marketplace not registered"));
+	const mkList = cli(["marketplace", "list"]);
+	if (mkList.missing) {
+		acts.push(action("claude", "claude CLI", "claude", "no-op", "`claude` not found on PATH — nothing to remove"));
+		return acts;
 	}
+	const hasPlugin = cli(["list"]).stdout.includes(CLAUDE_PLUGIN_KEY);
+	const hasMkt = mkList.stdout.includes(CLAUDE_MARKETPLACE);
 
-	const s = readJsonSafe(sPath);
-	if (s?.enabledPlugins && CLAUDE_PLUGIN_KEY in s.enabledPlugins) {
-		acts.push(action("claude", sPath, "config", "removed", "disabled plugin", () => {
-			const o = readJsonSafe(sPath) ?? {};
-			delete o.enabledPlugins[CLAUDE_PLUGIN_KEY];
-			if (Object.keys(o.enabledPlugins).length === 0) delete o.enabledPlugins;
-			writeJson(sPath, o);
-			unrecord(ctx.manifest, sPath, CLAUDE_PLUGIN_KEY);
-		}));
-	} else {
-		unrecord(ctx.manifest, sPath, CLAUDE_PLUGIN_KEY);
-		acts.push(action("claude", sPath, "config", "no-op", "plugin not enabled"));
-	}
+	acts.push(
+		hasPlugin
+			? action("claude", CLAUDE_PLUGIN_KEY, "claude", "removed", "claude plugin uninstall", () => {
+					const r = cli(["uninstall", CLAUDE_PLUGIN_KEY]);
+					if (!r.ok) throw new Error(`plugin uninstall failed: ${oneLine(r.stderr)}`);
+					unrecord(ctx.manifest, CLAUDE_PLUGIN_KEY, CLAUDE_MARKETPLACE);
+				})
+			: action("claude", CLAUDE_PLUGIN_KEY, "claude", "no-op", "plugin not installed"),
+	);
+	acts.push(
+		hasMkt
+			? action("claude", CLAUDE_MARKETPLACE, "claude", "removed", "claude plugin marketplace remove", () => {
+					const r = cli(["marketplace", "remove", CLAUDE_MARKETPLACE]);
+					if (!r.ok) throw new Error(`marketplace remove failed: ${oneLine(r.stderr)}`);
+				})
+			: action("claude", CLAUDE_MARKETPLACE, "claude", "no-op", "marketplace not registered"),
+	);
 	return acts;
 }
 
@@ -473,12 +493,7 @@ const HANDLERS = {
 	claude: {
 		dir: join(REPO_ROOT, "adapters", "claude-code"),
 		planInstall(ctx) {
-			const acts = [];
-			const build = planBuild("claude", this.dir, ctx.opts);
-			if (build) acts.push(build);
-			acts.push(planClaudeMarketplace(ctx));
-			acts.push(planClaudeEnable(ctx));
-			return acts;
+			return planClaude(ctx);
 		},
 		planUninstall(ctx) {
 			return planUninstallClaude(ctx);

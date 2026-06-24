@@ -74,13 +74,15 @@ node scripts/install.mjs uninstall --agent claude    # clean removal
 node scripts/install.mjs status                       # what's installed
 ```
 
-It registers this repo as a local Claude Code marketplace (`checkpoint-local`, declared in the
-repo-root `.claude-plugin/marketplace.json`) pointing at `adapters/claude-code`, and enables the
-`checkpoint` plugin. The repository stays the single source of truth; the Claude config dir is an
-install target, never edited in place. See [`scripts/install.mjs`](../../scripts/install.mjs) and the
-[feature quickstart](../../specs/006-install-distribution/quickstart.md) for flags (`--dry-run`,
-`--force`, `--no-build`).
+The installer drives Claude Code's own plugin CLI (so it loads exactly the way Claude expects):
+it runs `claude plugin marketplace add <repo>` (the repo-root
+[`.claude-plugin/marketplace.json`](../../.claude-plugin/marketplace.json) declares the `checkpoint`
+plugin with source `./adapters/claude-code`) then `claude plugin install checkpoint@checkpoint-local`.
+Idempotent; `uninstall` runs `claude plugin uninstall` + `marketplace remove`. Requires the `claude`
+CLI on `PATH` (reported clearly if absent). See [`scripts/install.mjs`](../../scripts/install.mjs).
 
-> The exact key Claude Code reads for enabled plugins is confirmed by the in-TUI smoke test
-> (`002` T031); if it differs, the installer writes the marketplace registration and the `/plugin`
-> commands to run are printed.
+> **Note:** unlike the pi/Codex adapters (live symlinks from the repo), Claude Code copies the plugin
+> into its own cache at the current git commit. After changing the adapter, rebuild and run
+> `claude plugin update checkpoint@checkpoint-local` (or re-run the installer's uninstall+install) to
+> pick it up. The plugin's `dist/` and `node_modules/` are copied along with it, so the command
+> bridge resolves.
