@@ -35,7 +35,7 @@ will adopt the same canonical name.
 ## Add-an-agent checklist status (for this adapter)
 
 - [x] Identify the agent's extension surface (plugin: commands + `hooks.json` + bundled scripts).
-- [ ] Write the adapter (`adapters/claude-code/`) — implementation phase.
+- [x] Write the adapter (`adapters/claude-code/`).
 - [ ] Wire install (symlink/copy into Claude's plugin dir) — deferred to feature 006; pointer documented in README.
 - [x] Update this mapping table.
-- [ ] Smoke-test (each command from the TUI, auto-capture on session end, startup pending notice) — implementation phase, per quickstart.md.
+- [~] Smoke-test: bridge/core path exercised (quickstart "Bridge smoke test"); in-TUI slash-command path pending a live Claude Code install (see tasks T031).

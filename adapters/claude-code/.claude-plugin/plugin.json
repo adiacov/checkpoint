@@ -1,0 +1,9 @@
+{
+	"name": "checkpoint",
+	"version": "0.1.0",
+	"description": "Never lose a coding session: capture git state + recent conversation at session end, recover next time. Thin wrapper around @checkpoint/core.",
+	"author": {
+		"name": "adiacov"
+	},
+	"hooks": "./hooks/hooks.json"
+}
