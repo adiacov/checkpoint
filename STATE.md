@@ -17,20 +17,37 @@ The agent-neutral checkpoint engine lives in `core/` (`@checkpoint/core`):
 
 Verified working as an installed dependency (npm pack → consume in a temp project).
 
+**Feature 2 — Claude Code adapter (`002-claude-code-adapter`): DONE and merged to `main`.**
+
+A thin Claude Code plugin in `adapters/claude-code/` (`@checkpoint/claude-code`) wraps the core
+with zero duplicated checkpoint logic (enforced by a neutrality test):
+
+- Four slash commands (`/checkpoint`, `/checkpoint-optin`, `/checkpoint-disable`,
+  `/checkpoint-status`) + `SessionStart`/`SessionEnd`/`PreCompact` hooks, all delegating to a thin
+  Node bridge → the core.
+- `SessionEnd`→`shutdown`, `PreCompact`→`reload` (reload-gating left to the core's `includeReload`),
+  manual→`manual`, mirroring the pi reference's reasons.
+- Only real logic is transcript translation (`src/transcript.ts`): Claude JSONL →
+  `ConversationEntry[]`, incl. the `tool_result`-only → `role:"tool"` rule that keeps the core's
+  skip-empty correct. 15 tests, build/typecheck/lint clean.
+- Verified end-to-end against the core (bridge smoke: opt-in, auto-capture, dedup, pending notice,
+  status, empty-skip, not-opted-in no-op).
+- **Remaining gap**: in-TUI smoke test (`tasks.md` T031) not yet run — needs the plugin installed
+  in a live Claude Code session (depends on the `006` install, or a manual dev install). Also
+  unconfirmed until then: whether `$CLAUDE_PLUGIN_ROOT` is available to slash-command bash (it is
+  for hooks per docs).
+
 ## Active work
 
-None in progress. Pick the next feature from the backlog below.
+None in progress. Pick the next feature from the backlog below (`003` is next).
 
 ## Next action — feature backlog
 
 Build one at a time with spec-kit (`/speckit-specify`). Numbered to match future branch numbers
 (core was `001`). Recommended order is top-to-bottom.
 
-1. **Claude Code adapter** (`002`) — START HERE. Thin plugin: register `/checkpoint`,
-   `/checkpoint-optin`, `/checkpoint-disable`, `/checkpoint-status`; hook session
-   start/end (`SessionStart`/`SessionEnd`/`PreCompact`); translate Claude's transcript into the
-   core's `ConversationEntry[]`; call the core. The only agent currently in use.
-2. **Recovery / integration workflow** (`003`) — do right after the first adapter. Review
+1. ~~**Claude Code adapter** (`002`)~~ — DONE (see Current status).
+2. **Recovery / integration workflow** (`003`) — START HERE. Review
    `sessions/pending/`, persist durable bits into project memory, move processed files to
    `sessions/archive/`. The core deliberately never does this; without it, pending piles up and
    the archive-prune has nothing to prune. (WORKFLOWS.md already describes the manual version.)
@@ -54,7 +71,10 @@ the constitution.
 Read these only when relevant to the current task.
 
 - `specs/001-shared-core/` — full spec, plan, contracts, data-model, tasks for the merged core.
+- `specs/002-claude-code-adapter/` — spec, plan, contracts (incl. the per-agent mapping table),
+  data-model, tasks for the merged Claude Code adapter.
 - `core/README.md` — how the core works and how an adapter calls it.
+- `adapters/claude-code/README.md` — what the Claude Code plugin adds and how to build it.
 - `.specify/memory/constitution.md` — non-negotiable architecture (core/adapter split, command
   surface, parity, add-an-agent discipline).
 - `PROJECT.md` / `BRIEF.md` — stable identity and the transformation plan.
