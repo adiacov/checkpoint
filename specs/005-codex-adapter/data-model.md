@@ -66,8 +66,10 @@ exact schema **varies by Codex version**, so the parser is deliberately tolerant
     (payload-free for thinking/image); anything else → an open block with its `type`.
   - otherwise → the record passed through as a `Record` (core stringifies it).
 - B5. Order preserved; no truncation/recent-N/dedup (the core does those).
-- B6. If the file is missing/empty/unreadable, return `[]` — the manual checkpoint is then
-  git-facts-only (still useful), honoring graceful degradation.
+- B6. If the file is missing/empty/unreadable, return `[]` — graceful degradation. The manual
+  checkpoint then carries no conversation entries; the core writes it when the session otherwise has
+  a real user message, or skip-empties a wholly empty session (same rule as every other adapter —
+  the adapter does not special-case it).
 
 ## Validation / invariants
 

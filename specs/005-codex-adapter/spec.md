@@ -156,8 +156,11 @@ into the adapter, and passes when all such decisions are delegated to the core.
   lack of deeper history.
 - **Manual command with no readable session transcript**: When the manual command runs, the richest
   conversation source is the Codex session transcript on disk, whose exact format varies by Codex
-  version. If it cannot be located or parsed, the manual checkpoint must degrade gracefully to a
-  git-facts-only checkpoint rather than failing.
+  version. If it cannot be located or parsed, the adapter must degrade gracefully (pass no
+  conversation entries rather than failing); a manual checkpoint therefore still captures whenever
+  the session has real conversation — which is the normal case, since the user has been conversing
+  with the agent. A wholly empty session remains subject to the core's skip-empty rule, exactly as
+  for every other adapter (the adapter does not special-case it).
 - **Long session, many turns**: Because capture triggers per completed turn (bounded by dedup),
   several pending checkpoints can accumulate over a long session. This is expected best-effort
   behavior; the recovery/archive workflow handles cleanup, and projects may configure a larger dedup
