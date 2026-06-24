@@ -83,10 +83,41 @@ checkpoint logic (neutrality test enforced):
   live pi session (depends on `006` install, or a manual dev install). The full core path is
   verified via the scripted handler smoke test.
 
+**Feature 5 — Codex adapter (`005-codex-adapter`): DONE (on branch `005-codex-adapter`, not yet merged).**
+
+Brings checkpoint to the Codex CLI as a thin **bridge** (the Claude Code pattern: a compiled Node
+CLI invoked externally) in `adapters/codex/` (`@checkpoint/codex`), zero duplicated checkpoint logic
+(neutrality test enforced). Codex's surface is the thinnest of the three, so automatic capture is
+explicitly **best-effort** and every gap is documented, not emulated:
+
+- **Commands**: four Codex custom prompts (`prompts/*.md`, `name.md`→`/name`) that instruct the
+  agent to run the bridge subcommand (`manual`/`optin`/`disable`/`status`) via its shell and report
+  output. Prompt-only (best-effort), and custom prompts are OpenAI-deprecated in favor of skills
+  (documented; skills would invoke the same bridge).
+- **Auto-capture**: Codex's `config.toml` `notify` program on `agent-turn-complete` (the **only**
+  automation event) → `capture(reason:"turn-complete")`, dedup-bounded. `config.example.toml` ships
+  the snippet. No session-start/end/pre-compact event exists → those are documented gaps
+  (`/checkpoint-status` is the on-demand stand-in for the missing start notice).
+- **Bridge** (`src/index.ts` dispatch + `src/bridge.ts`): subcommands `notify | manual | optin |
+  disable | status | archive`; `notify` is lifecycle-class (always exit 0, never throws). Reuses the
+  shared subcommand handlers thinly; single runtime dependency `@checkpoint/core`.
+- **Transcript** (`src/transcript.ts`): primary = the `agent-turn-complete` payload (stable,
+  guarantees a real user message for skip-empty); manual command = best-effort newest Codex rollout
+  JSONL (`~/.codex/sessions/**/rollout-*.jsonl`, tolerant parser, degrades to git-facts-only).
+- 19 tests green (transcript + contract/neutrality + scripted smoke); build/typecheck/lint clean.
+  Externally verified against current OpenAI Codex docs. Full spec-kit artifacts in
+  `specs/005-codex-adapter/`.
+- **Remaining gap**: in-Codex prompt-driven smoke test (`tasks.md` T024) not yet run — needs the
+  prompts + notify snippet in a live Codex install (depends on `006`, or a manual dev install). The
+  full bridge/core path is verified via the scripted smoke test.
+
+This completes all three originally-planned adapters (constitution ship order: core → Claude → pi →
+Codex).
+
 ## Active work
 
-None in progress. Next: merge `004-pi-adapter` to `main`, then pick `005` (Codex adapter) from the
-backlog.
+None in progress. Next: merge `005-codex-adapter` to `main`, then pick `006` (install / distribution)
+from the backlog.
 
 ## Next action — feature backlog
 
@@ -96,11 +127,12 @@ Build one at a time with spec-kit (`/speckit-specify`). Numbered to match future
 1. ~~**Claude Code adapter** (`002`)~~ — DONE (see Current status).
 2. ~~**Recovery / integration workflow** (`003`)~~ — DONE (see Current status).
 3. ~~**pi adapter** (`004`)~~ — DONE (see Current status).
-4. **Codex adapter** (`005`) — START HERE. Prompts (slash commands) + config `notify` for
-   best-effort automatic capture.
-5. **Install / distribution** (`006`) — symlink-from-repo (preferred) or copy+sync to place each
-   adapter into its agent's extensions dir. May be folded into the Claude adapter the first time,
-   then generalized here.
+4. ~~**Codex adapter** (`005`)~~ — DONE (see Current status).
+5. **Install / distribution** (`006`) — START HERE. Symlink-from-repo (preferred) or copy+sync to
+   place each adapter into its agent's extensions dir (pi `~/.pi/agent/extensions/`, Claude plugin
+   dir, Codex `~/.codex/prompts/` + `config.toml notify`, resolving the Codex `<BRIDGE>` path). May
+   be folded into the Claude adapter the first time, then generalized here. Unblocks the deferred
+   in-agent smoke tests for all three adapters (002 T031, 004 T023, 005 T024).
 6. **Config single-source migration** (`007`) — **DEPENDS ON `004`.** Make root `.checkpoint.json`
    the single source of truth across *all* projects. Scan sibling directories for ones still using
    the legacy `.pi/checkpoint.json`, and for each: merge the legacy config into `.checkpoint.json`
@@ -144,10 +176,13 @@ Read these only when relevant to the current task.
   data-model, tasks for the merged Claude Code adapter.
 - `specs/004-pi-adapter/` — spec, plan, contracts (pi agent-mapping row), data-model, tasks for the
   pi adapter.
+- `specs/005-codex-adapter/` — spec, plan, contracts (Codex agent-mapping row + best-effort gaps),
+  data-model, tasks for the Codex adapter.
 - `core/README.md` — how the core works and how an adapter calls it.
 - `adapters/claude-code/README.md` — what the Claude Code plugin adds and how to build it.
 - `adapters/pi/README.md` — what the pi extension adds, how it differs from the Claude Code adapter,
   and how to build it.
+- `adapters/codex/README.md` — what the Codex bridge adds, its best-effort gaps, and how to build it.
 - `.specify/memory/constitution.md` — non-negotiable architecture (core/adapter split, command
   surface, parity, add-an-agent discipline).
 - `PROJECT.md` / `BRIEF.md` — stable identity and the transformation plan.
