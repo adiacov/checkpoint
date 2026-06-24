@@ -37,9 +37,8 @@ registered `session_shutdown` handler with a stub `ctx` (non-empty session) in a
 repo → one checkpoint with `Reason: shutdown`; reload-gated/empty/duplicate/not-opted-in produce
 no file (core-decided).
 
-- [ ] T009 [US1] In `src/index.ts`, register `pi.on("session_shutdown", …)`: build deps via `captureDeps(ctx)`, call `capture(ctx.cwd, event.reason ?? "shutdown", deps)`, notify the written path on success (when `hasUI`); wrap in try/catch and notify an error on failure — never throw (FR-014). No adapter gating (reload/skip-empty/dedup are the core's).
-- [ ] T010 [US1] Register `pi.on("session_start", …)` stub now only if needed for symmetry — otherwise defer to US3. (Skip if US3 owns it; keep handlers in one place.)
-- [ ] T011 [US1] [Test] In `tests/contract.test.ts`, assert the `session_shutdown` handler is registered and that, driven against a fake core boundary / temp repo, it forwards `event.reason` (defaulting to `shutdown`) into capture (C2). Verify reason `reload` reaches the core as `reload` (gating is the core's).
+- [ ] T009 [US1] In `src/index.ts`, register `pi.on("session_shutdown", …)`: build deps via `captureDeps(ctx)`, call `capture(ctx.cwd, event.reason ?? "shutdown", deps)`, notify the written path on success (when `hasUI`); wrap in try/catch and notify an error on failure — never throw (FR-014). No adapter gating (reload/skip-empty/dedup are the core's). (`session_start` is registered later in US3/T016 — keep all handlers in this one module.)
+- [ ] T010 [US1] [Test] In `tests/contract.test.ts`, assert the `session_shutdown` handler is registered and that, driven against a fake core boundary / temp repo, it forwards `event.reason` (defaulting to `shutdown`) into capture (C2). Verify reason `reload` reaches the core as `reload` (gating is the core's).
 
 ## Phase 4: User Story 2 — Same four commands inside pi (P1)
 
@@ -47,11 +46,13 @@ no file (core-decided).
 invoke each registered handler with a stub `ctx` → optIn configures the project, status reports
 state, manual writes a checkpoint when enabled, disable flips the flag.
 
-- [ ] T012 [US2] Register `pi.registerCommand("checkpoint", …)`: build deps, call `capture(ctx.cwd, "manual", deps)`, format/notify result (disabled/not-configured → opt-in guidance) per contracts/commands.md.
-- [ ] T013 [P] [US2] Register `pi.registerCommand("checkpoint-optin", …)` → `optIn(ctx.cwd)`, notify config path / dirs / ignore rules.
-- [ ] T014 [P] [US2] Register `pi.registerCommand("checkpoint-disable", …)` → `disable(ctx.cwd)`, notify the kept-config message; safe no-op when not configured.
-- [ ] T015 [P] [US2] Register `pi.registerCommand("checkpoint-status", …)` → `status(ctx.cwd)`, notify configured/enabled + pending/archived counts + dirs (opt-in guidance when not configured).
-- [ ] T016 [US2] [Test] In `tests/contract.test.ts`, assert exactly four commands registered with the exact names `checkpoint`, `checkpoint-optin`, `checkpoint-disable`, `checkpoint-status` (C1), and run an optin → status → manual → disable → status cycle against a temp repo asserting the formatted outputs.
+- [ ] T011 [US2] Register `pi.registerCommand("checkpoint", …)`: build deps, call `capture(ctx.cwd, "manual", deps)`, format/notify result (disabled/not-configured → opt-in guidance) per contracts/commands.md.
+- [ ] T012 [US2] Register `pi.registerCommand("checkpoint-optin", …)` → `optIn(ctx.cwd)`, notify config path / dirs / ignore rules.
+- [ ] T013 [US2] Register `pi.registerCommand("checkpoint-disable", …)` → `disable(ctx.cwd)`, notify the kept-config message; safe no-op when not configured.
+- [ ] T014 [US2] Register `pi.registerCommand("checkpoint-status", …)` → `status(ctx.cwd)`, notify configured/enabled + pending/archived counts + dirs (opt-in guidance when not configured).
+- [ ] T015 [US2] [Test] In `tests/contract.test.ts`, assert exactly four commands registered with the exact names `checkpoint`, `checkpoint-optin`, `checkpoint-disable`, `checkpoint-status` (C1), and run an optin → status → manual → disable → status cycle against a temp repo asserting the formatted outputs.
+
+(T011–T014 all register into the same `src/index.ts`, so they are sequential, not `[P]`.)
 
 ## Phase 5: User Story 3 — Start-of-session pending notice & prune (P2)
 
@@ -59,8 +60,8 @@ state, manual writes a checkpoint when enabled, disable flips the flag.
 drive the `session_start` handler in an opted-in repo with N pending files and an over-limit
 archive → notifies N and prunes to the max; not-configured/disabled/empty → no misleading notice.
 
-- [ ] T017 [US3] Register/finish `pi.on("session_start", …)`: call `sessionStart(ctx.cwd)`; notify the pending count only when configured + enabled + `hasUI` + `pendingCount > 0` (FR-004); rely on `sessionStart` for the prune. Wrap in try/catch and notify an error on failure (never throw).
-- [ ] T018 [US3] [Test] In `tests/contract.test.ts`, assert the `session_start` handler is registered and, against a temp repo, notifies the pending count when there is something to review and prunes an over-limit archive; empty/disabled cases notify nothing misleading.
+- [ ] T016 [US3] Register `pi.on("session_start", …)` in `src/index.ts`: call `sessionStart(ctx.cwd)`; notify the pending count only when configured + enabled + `hasUI` + `pendingCount > 0` (FR-004); rely on `sessionStart` for the prune. Wrap in try/catch and notify an error on failure (never throw).
+- [ ] T017 [US3] [Test] In `tests/contract.test.ts`, assert the `session_start` handler is registered and, against a temp repo, notifies the pending count when there is something to review and prunes an over-limit archive; empty/disabled cases notify nothing misleading.
 
 ## Phase 6: User Story 4 — Logic lives once, verifiably (P2)
 
@@ -68,28 +69,28 @@ archive → notifies N and prunes to the max; not-configured/disabled/empty → 
 holds. **Independent test**: the neutrality test fails if logic is reintroduced, passes when all is
 delegated.
 
-- [ ] T019 [US4] [Test] Add the neutrality assertions to `tests/contract.test.ts` (C3/C4): no file under `src/` imports a git module, writes checkpoint markdown, computes dedup/prune/skip-empty, or reads/writes `.checkpoint.json`; the adapter imports checkpoint behavior from `@checkpoint/core`. Also assert FR negatives: no `bin`/PATH binary in `package.json`, and no curation/recovery (archive-move or summarize) logic in `src/`. Mirror the claude-code C3 test.
+- [ ] T018 [US4] [Test] Add the neutrality assertions to `tests/contract.test.ts` (C3/C4): no file under `src/` imports a git module, writes checkpoint markdown, computes dedup/prune/skip-empty, or reads/writes `.checkpoint.json`; the adapter imports checkpoint behavior from `@checkpoint/core`. Also assert FR negatives: no `bin`/PATH binary in `package.json`, and no curation/recovery (archive-move or summarize) logic in `src/`. Mirror the claude-code C3 test.
 
 ## Phase 7: Polish & cross-cutting
 
-- [ ] T020 [P] Write `adapters/pi/README.md` (humans): what it is, the four commands, the two lifecycle handlers, the canonical-name rename note (`checkpoint-enable` → `checkpoint-optin`), the hard-kill gap, and the install pointer (placement in `~/.pi/agent/extensions/` deferred to feature 006).
-- [ ] T021 [P] Tick the now-satisfied boxes in `contracts/agent-mapping.md` (adapter written, smoke-tested).
-- [ ] T022 [Test] Add the scripted handler smoke test from quickstart ("Scripted handler smoke test") — either as `tests/smoke.test.ts` (stub `pi`/`ctx` against a temp git repo) or a `scripts/smoke.mjs`; exercise optin → shutdown(non-empty)=1 file → shutdown again=dedup → shutdown(empty)=no file → session_start notice → status counts.
-- [ ] T023 Run `npm run build`, `npm run typecheck`, `npm test`, `npm run lint` in `adapters/pi/` — all clean.
-- [ ] T024 Perform the quickstart "In-agent smoke test" (each command from the pi TUI, auto-capture on session shutdown, startup notice) — Constitution Principle V gate. **PENDING: requires placing the extension in a live pi install (blocked on feature 006, or a manual dev install). The core path is verified via T022; the in-TUI path is not yet exercised.**
+- [ ] T019 [P] Write `adapters/pi/README.md` (humans): what it is, the four commands, the two lifecycle handlers, the canonical-name rename note (`checkpoint-enable` → `checkpoint-optin`), the hard-kill gap, and the install pointer (placement in `~/.pi/agent/extensions/` deferred to feature 006).
+- [ ] T020 [P] Tick the now-satisfied boxes in `contracts/agent-mapping.md` (adapter written, smoke-tested).
+- [ ] T021 [Test] Add the scripted handler smoke test from quickstart ("Scripted handler smoke test") — either as `tests/smoke.test.ts` (stub `pi`/`ctx` against a temp git repo) or a `scripts/smoke.mjs`; exercise optin → shutdown(non-empty)=1 file → shutdown again=dedup → shutdown(empty)=no file → session_start notice → status counts. Include a legacy `.pi/checkpoint.json`-only project assertion (FR-013) to confirm the adapter works on legacy config via the core.
+- [ ] T022 Run `npm run build`, `npm run typecheck`, `npm test`, `npm run lint` in `adapters/pi/` — all clean.
+- [ ] T023 Perform the quickstart "In-agent smoke test" (each command from the pi TUI, auto-capture on session shutdown, startup notice) — Constitution Principle V gate. **PENDING: requires placing the extension in a live pi install (blocked on feature 006, or a manual dev install). The core path is verified via T021; the in-TUI path is not yet exercised.**
 
 ## Dependencies & order
 
 - Setup (T001–T005) → Foundational (T006–T008) → user stories.
 - **Foundational blocks everything**: `transcript.ts` (T006) and the shared helpers (T008) underpin every handler.
-- **US1 (T009–T011)**, **US2 (T012–T016)**, **US3 (T017–T018)** all depend only on Foundational. They edit the same `src/index.ts` (one module registers all handlers), so coordinate that file if parallelizing; the `[P]` command tasks (T013–T015) are independent registrations within US2.
-- **US4 (T019)** depends on the handlers existing (extends the same `tests/contract.test.ts`).
-- Polish (T020–T024) last; T024 is the final acceptance gate.
+- **US1 (T009–T010)**, **US2 (T011–T015)**, **US3 (T016–T017)** all depend only on Foundational and all register into the single `src/index.ts`, so they are done sequentially within that file (not parallel).
+- **US4 (T018)** depends on the handlers existing (extends the same `tests/contract.test.ts`).
+- Polish (T019–T023) last; T023 is the final acceptance gate.
 
 ## Parallel execution examples
 
-- After Phase 2: US1, US2, US3 are independent increments (shared `index.ts` is the coordination point).
-- `[P]` within a phase = different files / independent registrations: T003/T004; T006/T007; T013/T014/T015; T020/T021.
+- The handler-registration tasks all share `src/index.ts`, so they are **not** parallel. Genuine `[P]` (different files) is limited to: T003/T004 (config files); T006/T007 (transcript + its test); T019/T020 (README + mapping-table edits).
+- The user-story phases are independent *increments* (each adds a testable slice), but coordinate the shared `index.ts` when sequencing them.
 
 ## MVP scope
 
