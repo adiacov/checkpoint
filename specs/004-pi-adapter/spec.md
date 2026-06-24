@@ -42,9 +42,12 @@ than escalated; each is recorded so downstream planning is unambiguous.
 - Q: Does this feature change the shared core? → A: No core change is expected; the core already
   exposes every needed capability and already reads the legacy `.pi/checkpoint.json`. If a genuine
   gap surfaces, the missing behavior is added to the core (never duplicated into the adapter).
-- Q: What command name does the "opt-in" / enable command use inside pi? → A: `checkpoint-enable`,
-  matching the reference extension (the project's "opt-in" command maps to pi's enable command);
-  the manual/disable/status names match across adapters.
+- Q: What command name does the "opt-in" / enable command use inside pi? → A: `checkpoint-optin`,
+  the canonical cross-agent name (Constitution Principle II), matching the Claude Code adapter. This
+  is a deliberate, documented rename of the reference extension's `checkpoint-enable` — a naming
+  change only, not a behavior divergence (parity is about behavior). The `002` agent-mapping table
+  already records that pi will adopt this canonical name; the manual/disable/status names match
+  across adapters.
 - Q: Must the adapter compile to JavaScript, or can pi load TypeScript directly? → A: The adapter
   source is authored in TypeScript (like the reference) and the project's build/type-check/lint/
   test gates run against it; whether pi consumes `.ts` or a compiled artifact at install time is an
@@ -270,9 +273,10 @@ to the core.
   optIn, disable, status, sessionStart, capture, archive) and already supports reading the legacy
   `.pi/checkpoint.json` config; no core changes are expected for this feature. If a genuine gap is
   found, the missing behavior belongs in the core, not the adapter.
-- `reference/checkpoint.ts` is the authoritative parity baseline for pi behavior, including the
-  command names used inside pi (the reference registers `checkpoint-enable`; the user-facing
-  "opt-in" command maps to pi's enable command).
+- `reference/checkpoint.ts` is the authoritative parity baseline for pi *behavior*. Command
+  *names* follow the canonical cross-agent surface (Principle II): the reference's
+  `checkpoint-enable` is registered as `checkpoint-optin` in this adapter — a documented rename, not
+  a behavior change.
 - The pi extension surface (command registration, `session_start` / `session_shutdown` events,
   the session manager / transcript access, and UI notify) is available and stable, matching what
   the reference extension uses.
