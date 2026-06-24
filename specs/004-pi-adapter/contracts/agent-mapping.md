@@ -50,9 +50,9 @@ so behavioral parity (Principle IV) holds.
 
 - [x] Identify the agent's extension surface (in-process extension: `registerCommand` + `on` +
   `sessionManager` + `ui.notify` via `ExtensionAPI`).
-- [ ] Write the adapter (`adapters/pi/`) — implemented in `/speckit-implement`.
+- [x] Write the adapter (`adapters/pi/`).
 - [ ] Wire install (place/symlink into `~/.pi/agent/extensions/`) — deferred to feature 006;
   pointer documented in README.
 - [x] Update this mapping table.
-- [ ] Smoke-test: core path exercised via unit/contract tests + a scripted handler smoke test;
-  in-TUI run pending a live pi install (feature 006).
+- [~] Smoke-test: core path exercised via unit/contract tests + a scripted handler smoke test
+  (`tests/smoke.test.ts`, all green); in-TUI run pending a live pi install (feature 006).
