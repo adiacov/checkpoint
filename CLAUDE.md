@@ -19,5 +19,5 @@ Project-specific Claude Code instructions may be added below.
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/006-install-distribution/plan.md
+at specs/007-config-migration/plan.md
 <!-- SPECKIT END -->

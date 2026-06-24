@@ -7,3 +7,4 @@
 
 export * from "./types.js";
 export { archive, capture, detectProject, disable, optIn, sessionStart, status } from "./api.js";
+export { migrateConfig } from "./migrate.js";
