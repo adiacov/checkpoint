@@ -21,3 +21,11 @@ PRIVATE.md
 secrets/
 *.pem
 *.key
+
+# Raw checkpoint captures — transient session evidence (git state + verbatim recent
+# conversation). Never publish: may contain secrets, tokens, and local absolute paths.
+# Ignore all content but keep the empty dir structure (.gitkeep) so opt-in stays no-op here.
+sessions/pending/*
+sessions/archive/*
+!sessions/pending/.gitkeep
+!sessions/archive/.gitkeep
