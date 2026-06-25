@@ -98,9 +98,11 @@ documented.
 - **Opt-in config**: A project opts in via `.checkpoint.json` at its root (agent-neutral),
   tracked in git so opt-in and tuning travel with the repo. Adapters MAY read the legacy
   `.pi/checkpoint.json` during transition.
-- **Artifact placement**: Raw checkpoint markdown is git-ignored (`sessions/pending/*.md`,
-  `sessions/archive/*.md`) with `.gitkeep`s tracked. `/checkpoint-optin` sets up the
-  directories and ignore rules.
+- **Artifact placement**: Raw checkpoint captures are git-ignored — the entire pending/archive
+  directory contents (`sessions/pending/*`, `sessions/archive/*`), not just markdown, because they
+  are transient session evidence that may contain secrets/tokens/local paths and must never be
+  published. `.gitkeep`s are kept (via `!`-negations) so the empty dirs stay tracked.
+  `/checkpoint-optin` creates the directories and these ignore rules (creating `.gitignore` if absent).
 - **Install**: Symlink-from-repo is the preferred install (single source of truth);
   copy+sync is the fallback. The repo is authoritative; agent extension dirs are install
   targets.

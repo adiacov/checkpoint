@@ -32,7 +32,7 @@ The user, across all the coding agents they use. Single-user, personal infrastru
 
 - A project opts in with **`.checkpoint.json`** at its root (agent-neutral; replaces pi's `.pi/checkpoint.json`). Adapters may read the legacy `.pi/checkpoint.json` during transition.
 - The config is **tracked in git** (opt-in + tuning travel with the repo), matching the current pi setup.
-- The **raw checkpoint markdown is git-ignored**: `sessions/pending/*.md` and `sessions/archive/*.md` (with `.gitkeep`s tracked). `/checkpoint-optin` sets up the directories and these ignore rules.
+- The **raw checkpoint captures are git-ignored**: all of `sessions/pending/*` and `sessions/archive/*` (not just `*.md`), with `.gitkeep`s kept via `!`-negations so the empty dirs stay tracked. Captures are transient session evidence (may contain secrets/paths) — never publish them. `/checkpoint-optin` sets up the directories and these ignore rules, creating `.gitignore` if it doesn't exist.
 
 ## Boundaries / non-goals
 

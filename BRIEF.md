@@ -84,7 +84,7 @@ Automatic capture is full on pi + Claude Code, best-effort on Codex. The command
 
 - New file: **`.checkpoint.json`** at repo root (agent-neutral; replaces `.pi/checkpoint.json`). Read legacy `.pi/checkpoint.json` during transition.
 - **Tracked in git** (opt-in + tuning travel with the repo), matching current behavior. (Open to flipping to ignored/machine-local if the user prefers.)
-- Raw checkpoints git-ignored: `sessions/pending/*.md`, `sessions/archive/*.md`; `.gitkeep`s tracked. `/checkpoint-optin` sets up dirs + ignore rules.
+- Raw checkpoints git-ignored: all of `sessions/pending/*`, `sessions/archive/*` (not just `*.md`); `.gitkeep`s kept via `!`-negations. Captures may contain secrets/paths — never publish. `/checkpoint-optin` sets up dirs + ignore rules (creates `.gitignore` if absent).
 
 ## Decisions made (during life-os discussion)
 

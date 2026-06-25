@@ -93,10 +93,15 @@ function ensureGitKeep(dir: string): void {
 }
 
 /**
- * Idempotently append ignore rules that keep raw checkpoint markdown out of git while leaving
- * the `.gitkeep` placeholders and the config file tracked (FR-010, SC-004). Returns the rules
- * that were newly added (empty if all were already present). Ported from the reference
- * `ensureGitIgnoreRules`.
+ * Idempotently append ignore rules that keep *all* raw checkpoint files out of git while leaving
+ * the `.gitkeep` placeholders (and the config file) tracked (FR-010, SC-004). Creates `.gitignore`
+ * if it does not exist. Returns the rules that were newly added (empty if all were already present).
+ *
+ * The rules ignore the entire pending/archive directory contents — not just `*.md` — because raw
+ * captures are transient session evidence (git state + verbatim recent conversation) that can carry
+ * secrets, tokens, and local absolute paths, so they must never be published regardless of
+ * extension. Each ignore is paired with a `!.../.gitkeep` negation so the empty dirs stay in the
+ * repo. The negation must follow its ignore line, so the rules are emitted in that order.
  */
 export function ensureGitIgnoreRules(root: string, config: CheckpointConfig): string[] {
 	const gitignorePath = path.join(root, ".gitignore");
@@ -107,15 +112,22 @@ export function ensureGitIgnoreRules(root: string, config: CheckpointConfig): st
 			.map((line) => line.trim())
 			.filter(Boolean),
 	);
+	const pendingDir = config.pendingDir.replace(/\\/g, "/");
+	const archiveDir = config.archiveDir.replace(/\\/g, "/");
 	const requiredRules = [
-		`${config.pendingDir.replace(/\\/g, "/")}/*.md`,
-		`${config.archiveDir.replace(/\\/g, "/")}/*.md`,
+		`${pendingDir}/*`,
+		`!${pendingDir}/.gitkeep`,
+		`${archiveDir}/*`,
+		`!${archiveDir}/.gitkeep`,
 	];
 	const missingRules = requiredRules.filter((rule) => !existingRules.has(rule));
 	if (missingRules.length === 0) return [];
 
 	const prefix = current.length === 0 || current.endsWith("\n") ? "" : "\n";
-	const section = ["# Raw checkpoint files", ...missingRules].join("\n");
+	const section = [
+		"# Raw checkpoint captures — never publish (may contain secrets/paths)",
+		...missingRules,
+	].join("\n");
 	writeFileSync(gitignorePath, `${current}${prefix}${section}\n`, "utf8");
 	return missingRules;
 }

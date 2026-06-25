@@ -147,9 +147,37 @@ test("optIn creates config, dirs, .gitkeep, and ignore rules with defaults", asy
 	assert.ok(existsSync(path.join(root, "sessions", "archive", ".gitkeep")));
 
 	const gitignore = readFileSync(path.join(root, ".gitignore"), "utf8");
-	assert.match(gitignore, /sessions\/pending\/\*\.md/);
-	assert.match(gitignore, /sessions\/archive\/\*\.md/);
-	assert.deepEqual(result.addedIgnoreRules, ["sessions/pending/*.md", "sessions/archive/*.md"]);
+	// All content ignored (not just *.md), with .gitkeep negations so the empty dirs stay tracked.
+	assert.match(gitignore, /^sessions\/pending\/\*$/m);
+	assert.match(gitignore, /^!sessions\/pending\/\.gitkeep$/m);
+	assert.match(gitignore, /^sessions\/archive\/\*$/m);
+	assert.match(gitignore, /^!sessions\/archive\/\.gitkeep$/m);
+	assert.deepEqual(result.addedIgnoreRules, [
+		"sessions/pending/*",
+		"!sessions/pending/.gitkeep",
+		"sessions/archive/*",
+		"!sessions/archive/.gitkeep",
+	]);
+});
+
+test("optIn preserves an existing .gitignore and appends checkpoint rules (each ! after its ignore)", async () => {
+	const root = tmp();
+	writeFileSync(path.join(root, ".gitignore"), "node_modules/\n*.log\n");
+
+	const result = await optIn(root, { runGit: repoRunner(root) });
+
+	const gitignore = readFileSync(path.join(root, ".gitignore"), "utf8");
+	// Pre-existing user content is untouched...
+	assert.match(gitignore, /^node_modules\/$/m);
+	assert.match(gitignore, /^\*\.log$/m);
+	// ...and our rules are appended, each .gitkeep negation positioned after its ignore line.
+	assert.ok(
+		gitignore.indexOf("sessions/pending/*") < gitignore.indexOf("!sessions/pending/.gitkeep"),
+	);
+	assert.ok(
+		gitignore.indexOf("sessions/archive/*") < gitignore.indexOf("!sessions/archive/.gitkeep"),
+	);
+	assert.equal(result.addedIgnoreRules.length, 4);
 });
 
 test("optIn is idempotent: no duplicate ignore rules, createdAt preserved", async () => {
@@ -162,7 +190,7 @@ test("optIn is idempotent: no duplicate ignore rules, createdAt preserved", asyn
 	assert.equal(loadConfig(root)?.createdAt, createdAt);
 
 	const gitignore = readFileSync(path.join(root, ".gitignore"), "utf8");
-	const occurrences = gitignore.match(/sessions\/pending\/\*\.md/g) ?? [];
+	const occurrences = gitignore.match(/^sessions\/pending\/\*$/gm) ?? [];
 	assert.equal(occurrences.length, 1);
 	assert.ok(first.configPath.endsWith(".checkpoint.json"));
 });
