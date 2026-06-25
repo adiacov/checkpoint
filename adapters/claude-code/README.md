@@ -61,8 +61,19 @@ cd ../adapters/claude-code && npm install && npm run build
 npm test        # transcript translation + contract/neutrality guard
 ```
 
-The hooks and slash commands invoke `node "${CLAUDE_PLUGIN_ROOT}/dist/index.js" <subcommand>`, so
-`npm run build` must have produced `dist/`.
+`npm run build` bundles `src/` (and its `@checkpoint/core` import) into a single self-contained
+`dist/index.js` via esbuild, so the shipped plugin needs no `node_modules` at runtime. Both entry
+points invoke that file, but they reach it through **different** variables — the only directory
+variable each context actually exposes:
+
+- **Hooks** (`hooks/hooks.json`): `node "${CLAUDE_PLUGIN_ROOT}/dist/index.js" <subcommand>` — Claude
+  substitutes `${CLAUDE_PLUGIN_ROOT}` (the plugin root) in hook configs.
+- **Slash commands** (`skills/<name>/SKILL.md`): `node "${CLAUDE_SKILL_DIR}/../../dist/index.js" <subcommand>` —
+  command bash injection does **not** receive `${CLAUDE_PLUGIN_ROOT}`. The only path variable it
+  substitutes is `${CLAUDE_SKILL_DIR}`, and Claude only substitutes it for true skills (a `SKILL.md`
+  under `skills/`), **not** for flat `commands/*.md` files (where it expands to empty). So each command
+  is a `skills/<name>/SKILL.md`; `${CLAUDE_SKILL_DIR}` resolves to that skill's own directory and the
+  bridge is two levels up at `../../dist/index.js`.
 
 ## Install
 
@@ -84,5 +95,6 @@ CLI on `PATH` (reported clearly if absent). See [`scripts/install.mjs`](../../sc
 > **Note:** unlike the pi/Codex adapters (live symlinks from the repo), Claude Code copies the plugin
 > into its own cache at the current git commit. After changing the adapter, rebuild and run
 > `claude plugin update checkpoint@checkpoint-local` (or re-run the installer's uninstall+install) to
-> pick it up. The plugin's `dist/` and `node_modules/` are copied along with it, so the command
-> bridge resolves.
+> pick it up, then restart the Claude session so it reloads the command/hook definitions. Because
+> `dist/index.js` is a self-contained bundle, the cache copy resolves with no dependency on the repo
+> or on `node_modules`.

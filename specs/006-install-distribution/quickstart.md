@@ -71,7 +71,9 @@ Installing makes the previously-deferred smoke tests runnable. Each is a manual 
 
 - **Claude Code (002 T031)**: open a Claude Code session in an opted-in project; run each
   `/checkpoint*` command; confirm auto-capture on session end/precompact and the startup pending
-  notice. Confirms `$CLAUDE_PLUGIN_ROOT` reaches slash-command bash.
+  notice. Note: slash-command bash receives `${CLAUDE_SKILL_DIR}` (not `$CLAUDE_PLUGIN_ROOT`, which is
+  hook-only), and only for `SKILL.md`-based skills — hence the commands ship as `skills/<name>/SKILL.md`
+  invoking `${CLAUDE_SKILL_DIR}/../../dist/index.js`.
 - **pi (004 T023)**: open a pi session; run the four commands; confirm `session_start` pending
   notice and `session_shutdown` capture. Confirms pi's extension loader resolves the adapter +
   `@checkpoint/core` (validates Decision 3 in research.md; switch to the bundle fallback if not).

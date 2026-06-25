@@ -22,16 +22,36 @@ import { runArchive } from "../src/bridge.ts";
 const root = fileURLToPath(new URL("..", import.meta.url));
 const read = (rel: string): string => readFileSync(new URL(`../${rel}`, import.meta.url), "utf8");
 
-test("C1: exactly the four canonical slash commands are declared", () => {
-	const commands = readdirSync(new URL("../commands", import.meta.url))
-		.filter((f) => f.endsWith(".md"))
+test("C1: exactly the four canonical slash commands are declared as skills", () => {
+	// Commands ship as skills/<name>/SKILL.md (not flat commands/*.md): Claude only substitutes
+	// ${CLAUDE_SKILL_DIR} in true skills, so the bridge path resolves only in skill mode.
+	const skills = readdirSync(new URL("../skills", import.meta.url), { withFileTypes: true })
+		.filter((d) => d.isDirectory())
+		.map((d) => d.name)
 		.sort();
-	assert.deepEqual(commands, [
-		"checkpoint-disable.md",
-		"checkpoint-optin.md",
-		"checkpoint-status.md",
-		"checkpoint.md",
+	assert.deepEqual(skills, [
+		"checkpoint",
+		"checkpoint-disable",
+		"checkpoint-optin",
+		"checkpoint-status",
 	]);
+
+	// Each skill must invoke the bundled bridge via ${CLAUDE_SKILL_DIR}/../../dist/index.js with its
+	// subcommand — guards against the empty-variable regression that broke the flat-command layout.
+	const expected: Record<string, string> = {
+		checkpoint: "manual",
+		"checkpoint-optin": "optin",
+		"checkpoint-disable": "disable",
+		"checkpoint-status": "status",
+	};
+	for (const [name, sub] of Object.entries(expected)) {
+		const body = read(`skills/${name}/SKILL.md`);
+		assert.match(
+			body,
+			new RegExp(`node "\\$\\{CLAUDE_SKILL_DIR\\}/\\.\\./\\.\\./dist/index\\.js" ${sub} `),
+			`${name} must call the bridge via \${CLAUDE_SKILL_DIR}/../../dist/index.js ${sub}`,
+		);
+	}
 });
 
 test("C2: exactly the three lifecycle hooks are wired to their subcommands", () => {
@@ -90,7 +110,7 @@ test("003: the archive subcommand delegates to the core archive() with no duplic
 	// archive is imported from the core and called as a thin delegate.
 	assert.match(bridge, /\barchive\b[^;]*from "@checkpoint\/core"/s);
 	assert.match(bridge, /await archive\(cwd,/);
-	// Reached as a CLI subcommand, NOT a fifth slash command (commands dir is unchanged — see C1).
+	// Reached as a CLI subcommand, NOT a fifth slash command (skills dir holds exactly four — see C1).
 	assert.match(read("src/index.ts"), /case "archive"/);
 });
 
