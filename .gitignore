@@ -13,6 +13,14 @@ dist/
 # Per-machine install manifest (006 install/distribution)
 .install/
 
+# Agent Workspace sync working files (baseline snapshots + transient artifacts)
+.agent-workspace/baseline/
+*.bak
+*.merge
+
+# Transient handoff outbox (delivered downstream, not project history)
+HANDOFF.md
+
 # Local/private identity, memory, or secrets
 MEMORY.md
 DECISIONS.local.md

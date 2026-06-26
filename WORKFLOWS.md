@@ -66,3 +66,21 @@ When coding or editing files:
 6. preserve existing content unless explicitly asked to reorganize it;
 7. run relevant checks when possible;
 8. summarize changed files, verification performed, and next steps.
+
+## Handoff
+
+`HANDOFF.md` is a transient outbox for progress not yet delivered downstream. It is not project history — git log and `STATE.md` hold history. Only write/update it when the user explicitly asks for a handoff/digest.
+
+If `HANDOFF.md` does not exist yet, create it on the first handoff request with this header, then append the entry below it:
+
+```
+# Handoff
+Empty = nothing pending. Append one entry per session, newest on top, only when the user asks for a handoff.
+```
+
+Rules:
+
+* Append a new entry; never overwrite prior un-drained entries. Newest entry on top.
+* Record only THIS session's delta — what changed, decisions, next steps, blockers/open questions. Derive it from this session's work (its commits/diff); do NOT re-read or copy `STATE.md`.
+* Entry shape: `## <date> · <commit/branch>` then: what changed · decisions · next · blockers/open-questions.
+* Never reference any specific downstream consumer by name.
