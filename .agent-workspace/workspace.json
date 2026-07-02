@@ -8,6 +8,10 @@
       "kind": "default",
       "template": "default/.gitignore"
     },
+    "AGENTS.md": {
+      "kind": "adapter",
+      "template": "adapters/AGENTS.md"
+    },
     "CLAUDE.md": {
       "agent": "claude",
       "kind": "adapter",
@@ -31,5 +35,5 @@
   "templateRevision": "unknown",
   "toolName": "agent-ws",
   "toolVersion": "unknown",
-  "updatedAt": "2026-06-20T12:53:50Z"
+  "updatedAt": "2026-07-02T11:31:03Z"
 }
